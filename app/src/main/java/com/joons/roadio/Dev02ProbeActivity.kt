@@ -8,6 +8,9 @@ import ai.pleos.playground.location.fused.model.ProximityAlertEvent
 import ai.pleos.playground.location.fused.model.ProximityAlertRequest
 import ai.pleos.playground.location.fused.model.ProximityTransition
 import android.content.pm.PackageManager
+import android.content.ComponentName
+import android.media.browse.MediaBrowser
+import android.media.session.MediaController
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
@@ -42,6 +45,8 @@ class Dev02ProbeActivity : ComponentActivity() {
     private var proximityAlertId: String? = null
     private var lastCoordinates: String? = null
     private var player: MediaPlayer? = null
+    private var mediaBrowser: MediaBrowser? = null
+    private var systemController: MediaController? = null
     private lateinit var audioManager: AudioManager
     private var focusRequest: AudioFocusRequest? = null
 
@@ -78,6 +83,9 @@ class Dev02ProbeActivity : ComponentActivity() {
                     Text("Roadio DEV-02 위치·오디오 검증")
                     Button(onClick = { probeLocation() }) { Text("위치 SDK 확인") }
                     Button(onClick = { registerTestProximity() }) { Text("강남역 500m 반경 알림 등록") }
+                    Button(onClick = { playFromMediaLibrary() }) { Text("차량 미디어 서비스로 샘플 선택 재생") }
+                    Button(onClick = { systemController?.transportControls?.pause(); report("미디어 세션 일시정지 요청") }) { Text("미디어 세션 일시정지") }
+                    Button(onClick = { systemController?.transportControls?.stop(); report("미디어 세션 종료 요청") }) { Text("미디어 세션 종료") }
                     Button(onClick = { playSample() }) { Text("샘플 음성 선택 재생") }
                     Button(onClick = { pauseSample() }) { Text("일시정지") }
                     Button(onClick = { stopSample() }) { Text("종료") }
@@ -86,6 +94,31 @@ class Dev02ProbeActivity : ComponentActivity() {
             }
         }
         probeLocation()
+        connectMediaBrowser()
+    }
+
+    private fun connectMediaBrowser() {
+        mediaBrowser = MediaBrowser(this, ComponentName(this, RoadioMediaService::class.java), object : MediaBrowser.ConnectionCallback() {
+            override fun onConnected() {
+                val browser = mediaBrowser ?: return
+                systemController = MediaController(this@Dev02ProbeActivity, browser.sessionToken)
+                report("플랫폼 MediaBrowser 연결; root=${browser.root}")
+                browser.subscribe(browser.root, object : MediaBrowser.SubscriptionCallback() {
+                    override fun onChildrenLoaded(parentId: String, children: MutableList<MediaBrowser.MediaItem>) {
+                        report("미디어 라이브러리 항목 ${children.size}개: ${children.joinToString { it.mediaId ?: "unknown" }}")
+                    }
+                })
+            }
+            override fun onConnectionFailed() { report("플랫폼 MediaBrowser 연결 실패") }
+        }, null)
+        mediaBrowser?.connect()
+    }
+
+    private fun playFromMediaLibrary() {
+        val controller = systemController
+        if (controller == null) { report("미디어 서비스 연결 전"); return }
+        controller.transportControls.playFromMediaId("dev02-sample", null)
+        report("사용자 선택: 미디어 세션 playFromMediaId 요청")
     }
 
     private fun probeLocation() {
@@ -171,6 +204,9 @@ class Dev02ProbeActivity : ComponentActivity() {
         proximityAlertId?.let { try { fused?.removeProximityAlert(it) } catch (_: Exception) {} }
         if (locationRegistered) try { fused?.unregisterFusedLocationCallback(locationListener) } catch (_: Exception) {}
         try { fused?.release() } catch (_: Exception) {}
+        systemController = null
+        mediaBrowser?.disconnect()
+        mediaBrowser = null
         stopSample()
         super.onDestroy()
     }

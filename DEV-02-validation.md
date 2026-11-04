@@ -15,7 +15,8 @@ Roadio의 P0 차량 경험은 현재 위치로 주변 캡슐을 찾고, 사용�
 - [x] Pleos AVD에서 `isSupported()`·초기화·위치 콜백 확인
 - [x] 가상 차량 위치를 바꿔 업데이트·반경 동작 확인
 - [x] 샘플 음성의 사용자 선택 재생·일시정지·종료 및 오디오 포커스 확인
-- [ ] MediaBrowserService/MediaSession 또는 Media3 경로와 카테고리 심사 조건 확정
+- [x] Media3 `MediaLibraryService` + 플랫폼 `MediaBrowserService` 호환 경로 선정·AVD 연결 검증
+- [ ] Roadio 음성 캡슐의 음악·오디오 하위 분류와 실제 심사 적합성 확인
 - [ ] `CarUxRestrictions` 적용 범위와 정차·주행 시 화면 동작 확인
 - [x] Roadio 개발 프로젝트의 SDK 접근 상태 확인 (Playground 표시·신청 내역 기준)
 - [ ] 실제 연동·가상 위치·샘플 오디오의 시연 표시 범위 결정
@@ -37,6 +38,9 @@ Roadio의 P0 차량 경험은 현재 위치로 주변 캡슐을 찾고, 사용�
 
 10. 사용자가 제공한 Roadio Pleos Playground 프로젝트 화면에서 SDK 메뉴의 FusedLocation은 `Coming Soon`/`준비 중`으로 표시됐다. `API 권한 관리`에는 Fleet·Vehicle Data만 표시됐으며, 사용자가 확인한 `API 신청 내역`에는 신청 기록이 없었다. 따라서 이 프로젝트에서 FusedLocation의 신청·승인 또는 배포 사용 권한은 확인되지 않았다. AVD에서 동작한 SDK 1.1.3의 기술 검증과 프로젝트 배포 권한은 서로 다른 근거로 관리한다.
 
+11. Pleos 음악·오디오 가이드의 표준 미디어 연동 조건과 Android Media3 호환 가이드를 비교했다. Roadio에는 Media3 `MediaLibraryService`/`MediaLibrarySession`/`ExoPlayer`를 선택하고, 서비스에 플랫폼 `android.media.browse.MediaBrowserService` 액션도 함께 등록했다. `android:appCategory="audio"`, 런처 메타데이터, 미디어 재생 포그라운드 서비스 권한을 선언했다. Roadio의 짧은 위치 음성은 Pleos가 열거한 음악·팟캐스트·오디오북·라디오 중 어느 하위 분류와 맞는지 아직 불명확하다. 편의상 팟캐스트로 단정하지 않는다.
+12. `:app:clean :app:assembleDebug` 성공 후 Pleos Connect v2.1.0 AVD에 설치했다. Android 플랫폼 `MediaBrowser` 연결 결과 `root=roadio-root`, 샘플 항목 1개(`dev02-sample`)를 받았다. 사용자 버튼에서 `playFromMediaId`를 호출한 뒤 `dumpsys media_session`에 Roadio 세션 `PLAYING(3)`이 표시됐고, `stop` 명령 뒤 `NONE(0)`으로 바뀌었다. 재생 직후 일시정지 명령을 보내 `PAUSED(2)` 상태도 확인했다. 차량 물리 버튼·Media Center 라이브러리 노출과 실제 차량 오디오 출력은 아직 검증하지 않았다.
+
 ## 고려한 대안·선택 이유
 
 - **위치:** FusedLocation을 우선 검증하되 의존성·권한·런타임이 확인되기 전까지 가상 위치 공급자를 분리한다. 캡슐 반경 검색은 서버 기능으로 설계한다.
@@ -47,7 +51,7 @@ Roadio의 P0 차량 경험은 현재 위치로 주변 캡슐을 찾고, 사용�
 
 이번 검증은 SDK가 Pleos AVD의 가상 위치를 읽고 반경 이벤트를 전달하는 것과 Android `MediaPlayer`가 샘플을 재생했다는 범위다. 실제 차량, 실제 위치, 음질·출력 장치, 서버 캡슐 검색은 확인하지 못했다. 진단 화면은 개발용이며 사용자 캡슐 검색 기능이 아니다.
 
-음악·오디오 앱의 `MediaBrowserService`/`MediaSession` 또는 Media3 적용과 카테고리 심사 조건, `CarUxRestrictions`에 따른 정차·주행 화면, Roadio 프로젝트 화면에는 FusedLocation이 준비 중이고 신청 내역이 없어 배포 권한을 확인할 수 없다. 실제 배포 가능 여부는 Pleos 공지·승인 상태가 바뀌면 다시 확인해야 한다. 이와 별개로 미디어 연동과 주행 중 UI 검증이 남아 DEV-02는 **진행 중**이다. 시연에서는 가상 위치와 합성 샘플을 표시하고 실제 연동으로 오인되지 않게 한다.
+Media3의 플랫폼 브라우저 호환 연결은 AVD에서 확인했다. Roadio 캡슐의 하위 분류·실제 심사 적합성, Media Center 노출과 차량 물리 제어, `CarUxRestrictions`에 따른 정차·주행 화면, Roadio 프로젝트 화면에는 FusedLocation이 준비 중이고 신청 내역이 없어 배포 권한을 확인할 수 없다. 실제 배포 가능 여부는 Pleos 공지·승인 상태가 바뀌면 다시 확인해야 한다. 이와 별개로 미디어 연동과 주행 중 UI 검증이 남아 DEV-02는 **진행 중**이다. 시연에서는 가상 위치와 합성 샘플을 표시하고 실제 연동으로 오인되지 않게 한다.
 
 ## 공식 근거
 
@@ -58,3 +62,6 @@ Roadio의 P0 차량 경험은 현재 위치로 주변 캡슐을 찾고, 사용�
 - [주행 제한 정책](https://document.pleos.ai/en/docs/pleos-only/vehicle-app-planning-guide/driving-restiction-policy)
 
 - [Pleos Maven FusedLocation 메타데이터](https://nexus-playground.pleos.ai/repository/maven-releases/ai/pleos/playground/FusedLocation/maven-metadata.xml)
+
+- [Android Media3 `MediaLibraryService` 가이드](https://developer.android.com/media/media3/session/serve-content)
+- [Android Media3 릴리스](https://developer.android.com/jetpack/androidx/releases/media3)

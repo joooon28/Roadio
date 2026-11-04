@@ -85,7 +85,8 @@ Roadio의 차량 위치 기반 발견과 선택 재생을 구현할 수 있는 �
 - [x] Roadio AVD에서 위치 SDK 지원·권한·콜백 시험
 - [x] 위치 변경과 반경 진입 결과 시험
 - [x] 샘플 오디오 선택 재생과 오디오 포커스 시험
-- [ ] 차량 미디어 연동 방식과 앱 분류 결정
+- [x] 차량 미디어 연동 경로 선정·AVD 확인 (Media3 + 플랫폼 MediaBrowser 호환)
+- [ ] 음성 캡슐 하위 분류와 심사 적합성 확인
 - [ ] 정차·주행 UX 제약 확인 (개발 계정 SDK 표시·신청 내역은 확인)
 - [ ] 실제 연동과 시연 대체 범위 확정
 
@@ -93,6 +94,6 @@ Roadio의 차량 위치 기반 발견과 선택 재생을 구현할 수 있는 �
 
 ### 결정·검증 기록
 
-- **현재 결과:** 문서의 FusedLocation `1.1.2` POM은 404였고 Maven 메타데이터의 `1.1.3`으로 빌드했다. Pleos AVD에서 권한 허용 후 `isSupported=true`, 위치 업데이트, 500m 반경 EXIT·ENTER를 확인했다. 샘플 음성의 선택 재생·일시정지·종료와 오디오 포커스 승인 로그도 확인했다.
-- **남은 한계:** 실제 차량·실음 청취, MediaSession/MediaBrowserService 연동, 주행 중 UI 제약은 미검증이다. Playground의 FusedLocation은 준비 중이고 Roadio 프로젝트에 API 신청 내역이 없어 배포 권한은 확인되지 않았다. 따라서 DEV-02는 진행 중이다.
+- **현재 결과:** 문서의 FusedLocation `1.1.2` POM은 404였고 Maven 메타데이터의 `1.1.3`으로 빌드했다. Pleos AVD에서 권한 허용 후 `isSupported=true`, 위치 업데이트, 500m 반경 EXIT·ENTER를 확인했다. 샘플 음성의 선택 재생·일시정지·종료와 오디오 포커스 승인 로그도 확인했다. Media3 서비스의 플랫폼 브라우저 연결·샘플 조회 및 시스템 세션 PLAYING/종료 상태를 AVD에서 확인했다.
+- **남은 한계:** 실제 차량·실음 청취, 차량 물리 제어·Media Center 노출, 음성 캡슐 하위 분류, 주행 중 UI 제약은 미검증이다. Playground의 FusedLocation은 준비 중이고 Roadio 프로젝트에 API 신청 내역이 없어 배포 권한은 확인되지 않았다. 따라서 DEV-02는 진행 중이다.
 - **상세 기록:** `DEV-02-validation.md`.

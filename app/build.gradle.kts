@@ -38,6 +38,8 @@ android {
 
 dependencies {
     implementation("ai.pleos.playground:FusedLocation:1.1.3")
+    implementation("androidx.media3:media3-exoplayer:1.11.1")
+    implementation("androidx.media3:media3-session:1.11.1")
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)
