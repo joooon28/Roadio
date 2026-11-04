@@ -1,6 +1,7 @@
 package com.joons.testdrive
 
 import android.os.Bundle
+import android.content.Intent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
@@ -54,6 +55,18 @@ private data class DriveRecord(
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (intent.getBooleanExtra("dev02_probe", false)) {
+            startActivity(Intent(this, Dev02ProbeActivity::class.java).apply {
+                putExtra("dev02_action", intent.getStringExtra("dev02_action"))
+            })
+            finish()
+            return
+        }
+        if (intent.getBooleanExtra("sdk_probe", false)) {
+            startActivity(Intent(this, SdkProbeActivity::class.java))
+            finish()
+            return
+        }
         setContent {
             TestDriveTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { padding ->
@@ -118,6 +131,18 @@ fun DriveFitApp(modifier: Modifier = Modifier) {
                 }
                 Spacer(Modifier.height(24.dp))
                 OutlinedButton(onClick = { screen = 4 }) { Text("지난 시승 기록 보기") }
+                Spacer(Modifier.height(12.dp))
+                OutlinedButton(onClick = { context.startActivity(Intent(context, Dev03FlowActivity::class.java)) }) {
+                    Text("DEV-03 새 시승 흐름")
+                }
+                Spacer(Modifier.height(12.dp))
+                OutlinedButton(onClick = { context.startActivity(Intent(context, Dev02ProbeActivity::class.java)) }) {
+                    Text("DEV-02 SDK 검증")
+                }
+                Spacer(Modifier.height(12.dp))
+                OutlinedButton(onClick = { context.startActivity(Intent(context, SdkProbeActivity::class.java)) }) {
+                    Text("추가 SDK 연결 확인")
+                }
             }
 
             1 -> {
