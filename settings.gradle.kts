@@ -22,5 +22,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "TestDrive"
+rootProject.name = "Roadio"
 include(":app")

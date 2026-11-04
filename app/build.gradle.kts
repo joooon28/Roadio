@@ -4,13 +4,13 @@ plugins {
 }
 
 android {
-    namespace = "com.joons.testdrive"
+    namespace = "com.joons.roadio"
     compileSdk {
         version = release(37)
     }
 
     defaultConfig {
-        applicationId = "com.joons.testdrive"
+        applicationId = "com.joons.roadio"
         minSdk = 28
         targetSdk = 37
         versionCode = 1
