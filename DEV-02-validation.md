@@ -11,10 +11,10 @@ Roadio의 P0 차량 경험은 현재 위치로 주변 캡슐을 찾고, 사용�
 - [x] 위치·재생에 필요한 기술 후보와 시연 대체 범위 정리
 - [x] FusedLocation 공식 의존성·권한 안내 및 Maven 파일 응답 확인
 - [x] Pleos 음악·오디오 앱과 주행 제한 가이드 검토
-- [ ] Roadio 프로젝트에서 FusedLocation 의존성 빌드 확인
-- [ ] Pleos AVD에서 `isSupported()`·초기화·위치 콜백 확인
-- [ ] 가상 차량 위치를 바꿔 업데이트·반경 동작 확인
-- [ ] 샘플 음성의 사용자 선택 재생·일시정지·종료 및 오디오 포커스 확인
+- [x] Roadio 프로젝트에서 FusedLocation 의존성 빌드 확인
+- [x] Pleos AVD에서 `isSupported()`·초기화·위치 콜백 확인
+- [x] 가상 차량 위치를 바꿔 업데이트·반경 동작 확인
+- [x] 샘플 음성의 사용자 선택 재생·일시정지·종료 및 오디오 포커스 확인
 - [ ] MediaBrowserService/MediaSession 또는 Media3 경로와 카테고리 심사 조건 확정
 - [ ] `CarUxRestrictions` 적용 범위와 정차·주행 시 화면 동작 확인
 - [ ] Roadio 개발 프로젝트의 SDK 접근 상태 확인
@@ -30,6 +30,11 @@ Roadio의 P0 차량 경험은 현재 위치로 주변 캡슐을 찾고, 사용�
 4. Pleos 음악·오디오 앱 가이드는 음악·오디오 카테고리의 표준 차량 미디어 연동에 `MediaBrowserService`와 `MediaSession`을 요구한다고 적고, 같은 문서 후반에는 Media3 `MediaSession`/`MediaLibraryService`를 현재 표준으로 권장한다. Roadio의 분류와 채택 경로는 확인이 필요하다. 자동 재생 금지와 오디오 포커스 처리 조건도 안내한다.
 5. 주행 제한 정책은 지역·차종·플랫폼 버전에 따라 달라질 수 있다. Roadio는 차량 상태 API 접근을 가정하지 않고 정차 시연을 우선한다.
 
+6. 공식 Pleos Maven 메타데이터에는 FusedLocation `1.0.4`, `1.1.3`이 게시되어 있고 `1.1.3` POM은 HTTP 200이었다. 공식 가이드의 `1.1.2` 예시는 현재 저장소와 어긋난다. Roadio에 `1.1.3` 의존성과 `pleos.car.permission.FUSED_LOCATION`을 넣어 `:app:clean :app:assembleDebug` 빌드에 성공했다.
+7. Pleos Connect v2.1.0 AVD에서 Roadio 진단 화면을 설치·실행했다. 권한 허용 뒤 `isSupported=true`, `initialize` 완료, 위치 콜백 등록 및 좌표 수신을 Logcat으로 확인했다. `adb emu geo fix 127.0276 37.4979`로 위치를 바꾸자 콜백이 새 좌표를 받았다.
+8. 강남역 좌표 기준 500m `ProximityAlertRequest` 등록 후, 가상 위치를 반경 밖(`127.0500, 37.5100`)으로 이동하자 `EXIT`, 다시 안(`127.0276, 37.4979`)으로 이동하자 `ENTER` 이벤트가 기록됐다. 이는 AVD의 가상 위치를 Pleos SDK가 처리한 결과이며 실제 차량 위치 검증은 아니다.
+9. 사전 준비한 합성 음성 WAV를 화면 버튼으로 선택해 재생했다. 오디오 포커스 요청 결과 `1`(허용), 재생 시작·완료·종료 및 포커스 해제 로그를 확인했다. 버튼으로 일시정지와 재시작도 확인했다. 실제 스피커에서 들리는지는 확인하지 못했다. 자동 재생은 구현하지 않았다.
+
 ## 고려한 대안·선택 이유
 
 - **위치:** FusedLocation을 우선 검증하되 의존성·권한·런타임이 확인되기 전까지 가상 위치 공급자를 분리한다. 캡슐 반경 검색은 서버 기능으로 설계한다.
@@ -38,7 +43,9 @@ Roadio의 P0 차량 경험은 현재 위치로 주변 캡슐을 찾고, 사용�
 
 ## 남은 한계·후속 작업
 
-현재 Roadio 앱에는 FusedLocation 또는 미디어 재생 코드가 없다. Maven 404 때문에 위치 SDK의 AVD 지원·콜백은 아직 확인하지 못했다. 오디오 가이드의 MediaBrowserService와 Media3 기술 선택은 실제 심사·에뮬레이터 기준을 더 확인한 뒤 결정한다. 개발 계정의 Roadio 프로젝트 접근 상태도 미확인이다.
+이번 검증은 SDK가 Pleos AVD의 가상 위치를 읽고 반경 이벤트를 전달하는 것과 Android `MediaPlayer`가 샘플을 재생했다는 범위다. 실제 차량, 실제 위치, 음질·출력 장치, 서버 캡슐 검색은 확인하지 못했다. 진단 화면은 개발용이며 사용자 캡슐 검색 기능이 아니다.
+
+음악·오디오 앱의 `MediaBrowserService`/`MediaSession` 또는 Media3 적용과 카테고리 심사 조건, `CarUxRestrictions`에 따른 정차·주행 화면, Roadio 개발 프로젝트의 SDK 사용 권한을 확인해야 한다. 이 항목이 남아 있어 DEV-02는 **진행 중**이다. 시연에서는 가상 위치와 합성 샘플을 표시하고 실제 연동으로 오인되지 않게 한다.
 
 ## 공식 근거
 
@@ -47,3 +54,5 @@ Roadio의 P0 차량 경험은 현재 위치로 주변 캡슐을 찾고, 사용�
 - [FusedLocation 권한](https://document.pleos.ai/en/docs/pleos-only/connect-sdk-pleos/FusedLocation/declaring-permissions)
 - [Pleos 음악·오디오 앱 개발 가이드](https://document.pleos.ai/en/docs/pleos-only/vehicle-app-developer-guide/music-audio-app-developement-guide)
 - [주행 제한 정책](https://document.pleos.ai/en/docs/pleos-only/vehicle-app-planning-guide/driving-restiction-policy)
+
+- [Pleos Maven FusedLocation 메타데이터](https://nexus-playground.pleos.ai/repository/maven-releases/ai/pleos/playground/FusedLocation/maven-metadata.xml)
