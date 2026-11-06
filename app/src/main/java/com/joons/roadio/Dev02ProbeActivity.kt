@@ -1,6 +1,9 @@
 package com.joons.roadio
 
 import ai.pleos.playground.location.fused.FusedLocation
+import android.car.Car
+import android.car.drivingstate.CarUxRestrictions
+import android.car.drivingstate.CarUxRestrictionsManager
 import ai.pleos.playground.location.fused.listener.FusedLocationListener
 import ai.pleos.playground.location.fused.listener.ProximityAlertListener
 import ai.pleos.playground.location.fused.model.LocationData
@@ -38,6 +41,9 @@ import com.joons.roadio.ui.theme.RoadioTheme
 class Dev02ProbeActivity : ComponentActivity() {
     private val locationPermission = "pleos.car.permission.FUSED_LOCATION"
     private var reportText by mutableStateOf("DEV-02 진단 시작")
+    private var uxRestricted by mutableStateOf(false)
+    private var car: Car? = null
+    private var uxManager: CarUxRestrictionsManager? = null
     private var fused: FusedLocation? = null
     private var locationRegistered = false
     private var locationInitialized = false
@@ -81,6 +87,8 @@ class Dev02ProbeActivity : ComponentActivity() {
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text("Roadio DEV-02 위치·오디오 검증")
+                    Text(if (uxRestricted) "주행 규제 활성화: 진단 조작 제한" else "주행 규제 비활성화: 정차 진단")
+                    if (!uxRestricted) {
                     Button(onClick = { probeLocation() }) { Text("위치 SDK 확인") }
                     Button(onClick = { registerTestProximity() }) { Text("강남역 500m 반경 알림 등록") }
                     Button(onClick = { playFromMediaLibrary() }) { Text("차량 미디어 서비스로 샘플 선택 재생") }
@@ -89,12 +97,32 @@ class Dev02ProbeActivity : ComponentActivity() {
                     Button(onClick = { playSample() }) { Text("샘플 음성 선택 재생") }
                     Button(onClick = { pauseSample() }) { Text("일시정지") }
                     Button(onClick = { stopSample() }) { Text("종료") }
+                    }
                     Text(reportText)
                 }
             }
         }
         probeLocation()
         connectMediaBrowser()
+        observeUxRestrictions()
+    }
+
+    private fun observeUxRestrictions() {
+        try {
+            car = Car.createCar(this)
+            uxManager = car?.getCarManager(Car.CAR_UX_RESTRICTION_SERVICE) as? CarUxRestrictionsManager
+            val manager = uxManager ?: run { report("CarUxRestrictionsManager 사용 불가"); return }
+            updateUxRestrictions(manager.currentCarUxRestrictions)
+            manager.registerListener { restrictions -> updateUxRestrictions(restrictions) }
+            report("CarUxRestrictions 리스너 등록")
+        } catch (error: Exception) { report("CarUxRestrictions 오류: ${error.javaClass.simpleName}: ${error.message}") }
+    }
+
+    private fun updateUxRestrictions(restrictions: CarUxRestrictions?) {
+        if (restrictions == null) { report("CarUxRestrictions 상태 없음"); return }
+        val active = restrictions.isRequiresDistractionOptimization
+        uxRestricted = active
+        report("CarUxRestrictions: requiresDO=$active, active=${restrictions.activeRestrictions}")
     }
 
     private fun connectMediaBrowser() {
@@ -204,6 +232,8 @@ class Dev02ProbeActivity : ComponentActivity() {
         proximityAlertId?.let { try { fused?.removeProximityAlert(it) } catch (_: Exception) {} }
         if (locationRegistered) try { fused?.unregisterFusedLocationCallback(locationListener) } catch (_: Exception) {}
         try { fused?.release() } catch (_: Exception) {}
+        try { uxManager?.unregisterListener() } catch (_: Exception) {}
+        car?.disconnect()
         systemController = null
         mediaBrowser?.disconnect()
         mediaBrowser = null
