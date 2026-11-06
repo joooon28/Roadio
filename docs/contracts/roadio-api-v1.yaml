@@ -1,0 +1,214 @@
+openapi: 3.1.0
+info:
+  title: Roadio capsule contract
+  version: 0.1.0
+  description: DEV-03 design contract. No server endpoint is implemented yet.
+servers:
+  - url: https://api.example.invalid
+    description: Placeholder; replace in DEV-09 before any network call.
+security:
+  - bearerAuth: []
+paths:
+  /v1/capsules:
+    post:
+      summary: Create a capsule from a mobile recording
+      operationId: createCapsule
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            encoding:
+              metadata:
+                contentType: application/json
+            schema:
+              type: object
+              required: [metadata, audio]
+              properties:
+                metadata:
+                  $ref: '#/components/schemas/CreateCapsule'
+                audio:
+                  type: string
+                  format: binary
+                  description: A recorded audio file; exact supported codecs and size limits are decided in DEV-07/09.
+      responses:
+        '201':
+          description: Capsule created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OwnerCapsule'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '413': { description: Audio exceeds the server limit; limit decided in DEV-09. }
+    get:
+      summary: List my capsules for the mobile app
+      operationId: listOwnCapsules
+      responses:
+        '200':
+          description: Includes active, expired and deleted items for owner management.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/OwnerCapsule' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /v1/capsules/nearby/search:
+    post:
+      summary: Find capsules accessible at one vehicle location
+      description: Server checks audience, publication state, expiry, deletion, moderation and radius. No search history is stored for MVP.
+      operationId: searchNearbyCapsules
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NearbySearch' }
+      responses:
+        '200':
+          description: Accessible capsule summaries only; no exact capsule coordinates or audio URLs.
+          headers:
+            Cache-Control:
+              schema: { type: string, const: no-store }
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [capsules]
+                properties:
+                  capsules:
+                    type: array
+                    items: { $ref: '#/components/schemas/CapsuleSummary' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /v1/capsules/{capsuleId}/audio:
+    parameters:
+      - $ref: '#/components/parameters/CapsuleId'
+    get:
+      summary: Stream audio after a user selects a capsule
+      description: Server rechecks access, expiry and deletion on every request. Supports HTTP Range for media playback. Never auto-play on proximity events.
+      operationId: streamCapsuleAudio
+      parameters:
+        - name: Range
+          in: header
+          required: false
+          schema: { type: string }
+      responses:
+        '200': { description: Full audio body with actual audio Content-Type. }
+        '206': { description: Partial audio body with Content-Range. }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/capsules/{capsuleId}:
+    parameters:
+      - $ref: '#/components/parameters/CapsuleId'
+    delete:
+      summary: Delete my capsule
+      operationId: deleteOwnCapsule
+      responses:
+        '204': { description: Deleted; subsequent search and audio requests exclude it. }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Identity provider and token issuance are chosen in DEV-09. Both apps must resolve to the same server user ID.
+  parameters:
+    CapsuleId:
+      name: capsuleId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+  responses:
+    BadRequest:
+      description: Invalid metadata, coordinate, radius, recipient or expiry.
+    Unauthorized:
+      description: Missing or invalid authenticated identity.
+    NotFound:
+      description: Capsule is absent or not accessible. Do not reveal existence to other users.
+  schemas:
+    Visibility:
+      type: string
+      enum: [SELF, SELECTED, PUBLIC]
+    ContentOrigin:
+      type: string
+      enum: [MOBILE_RECORDING, PRELOADED_SAMPLE]
+      description: PRELOADED_SAMPLE is allowed only in an explicitly labeled demo environment.
+    LocationSource:
+      type: string
+      enum: [PLEOS_DEVICE, PLEOS_EMULATOR]
+      description: Client display/diagnostic metadata, not a server authorization signal.
+    GeoPoint:
+      type: object
+      required: [latitude, longitude]
+      additionalProperties: false
+      properties:
+        latitude: { type: number, minimum: -90, maximum: 90 }
+        longitude: { type: number, minimum: -180, maximum: 180 }
+    CreateCapsule:
+      type: object
+      required: [title, position, radiusMeters, visibility, expiresAt, contentOrigin]
+      additionalProperties: false
+      if:
+        properties:
+          visibility: { const: SELECTED }
+      then:
+        required: [selectedRecipientUserIds]
+        properties:
+          selectedRecipientUserIds: { minItems: 1 }
+      else:
+        properties:
+          selectedRecipientUserIds: { maxItems: 0 }
+      properties:
+        title: { type: string, minLength: 1, maxLength: 80 }
+        description: { type: string, maxLength: 160 }
+        position: { $ref: '#/components/schemas/GeoPoint' }
+        radiusMeters: { type: integer, minimum: 100, maximum: 3000, description: 'Provisional UX/technical range; validate in DEV-08.' }
+        visibility: { $ref: '#/components/schemas/Visibility' }
+        selectedRecipientUserIds:
+          type: array
+          uniqueItems: true
+          items: { type: string, format: uuid }
+          description: Required and nonempty only for SELECTED; empty/omitted for SELF or PUBLIC. Server validates each recipient.
+        expiresAt: { type: string, format: date-time, description: UTC instant after server receipt; maximum duration decided in DEV-09. }
+        contentOrigin: { $ref: '#/components/schemas/ContentOrigin' }
+    CapsuleSummary:
+      type: object
+      required: [id, title, authorDisplayName, durationMs, visibility, expiresAt, distanceMeters, contentOrigin]
+      additionalProperties: false
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        authorDisplayName: { type: string }
+        durationMs: { type: integer, minimum: 1 }
+        visibility: { $ref: '#/components/schemas/Visibility' }
+        expiresAt: { type: string, format: date-time }
+        distanceMeters: { type: integer, minimum: 0 }
+        contentOrigin: { $ref: '#/components/schemas/ContentOrigin' }
+    OwnerCapsule:
+      type: object
+      required: [id, title, ownerUserId, position, radiusMeters, visibility, expiresAt, createdAt, durationMs, contentOrigin, state]
+      additionalProperties: false
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        description: { type: string }
+        ownerUserId: { type: string, format: uuid }
+        position: { $ref: '#/components/schemas/GeoPoint' }
+        radiusMeters: { type: integer }
+        visibility: { $ref: '#/components/schemas/Visibility' }
+        selectedRecipientUserIds:
+          type: array
+          items: { type: string, format: uuid }
+        expiresAt: { type: string, format: date-time }
+        createdAt: { type: string, format: date-time }
+        durationMs: { type: integer, minimum: 1 }
+        contentOrigin: { $ref: '#/components/schemas/ContentOrigin' }
+        state: { type: string, enum: [ACTIVE, EXPIRED, DELETED, PENDING_REVIEW] }
+    NearbySearch:
+      type: object
+      required: [position, locationSource]
+      additionalProperties: false
+      properties:
+        position: { $ref: '#/components/schemas/GeoPoint' }
+        locationSource: { $ref: '#/components/schemas/LocationSource' }
+        limit: { type: integer, minimum: 1, maximum: 30, default: 20 }
