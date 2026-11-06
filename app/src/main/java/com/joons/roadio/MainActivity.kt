@@ -26,11 +26,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.joons.roadio.ui.theme.RoadioTheme
+import java.time.Instant
 
-private enum class DemoState { CHECKING, AVAILABLE, EMPTY, UNAVAILABLE }
+private enum class DemoScenario { CHECKING, FAMILY_NEAR, FAMILY_FAR, NOT_SELECTED, EXPIRED, UNAVAILABLE }
 private enum class DemoPage { HOME, LIST, DETAIL, PLAYER }
 
-/** DEV-04 stationary wireframe. The capsule and location here are fictional UI samples. */
+/** DEV-05 stationary sample discovery; no server, live vehicle position or audio playback. */
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,8 +47,20 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun RoadioHome() {
     val context = LocalContext.current
-    var state by remember { mutableStateOf(DemoState.CHECKING) }
+    val sampleTime = remember { Instant.now() }
+    val sampleCapsules = remember(sampleTime) { Dev05SampleData.capsules(sampleTime) }
+    var scenario by remember { mutableStateOf(DemoScenario.CHECKING) }
     var page by remember { mutableStateOf(DemoPage.HOME) }
+    val vehiclePosition = when (scenario) {
+        DemoScenario.CHECKING, DemoScenario.UNAVAILABLE -> null
+        DemoScenario.FAMILY_FAR -> Dev05SampleData.farPosition
+        else -> Dev05SampleData.nearPosition
+    }
+    val viewerUserId = if (scenario == DemoScenario.NOT_SELECTED) Dev05SampleData.otherUserId else Dev05SampleData.recipientUserId
+    val searchTime = if (scenario == DemoScenario.EXPIRED) sampleTime.plusSeconds(8 * 24 * 60 * 60) else sampleTime
+    val results = vehiclePosition?.let { SampleCapsuleDiscovery.search(sampleCapsules, it, viewerUserId, searchTime) }.orEmpty()
+    val selected = results.firstOrNull()
+    val changeScenario: (DemoScenario) -> Unit = { scenario = it; page = DemoPage.HOME }
     val back: () -> Unit = {
         page = when (page) {
             DemoPage.HOME -> DemoPage.HOME
@@ -61,50 +74,59 @@ fun RoadioHome() {
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text("Roadio", style = MaterialTheme.typography.headlineLarge)
-        Text("DEV-04 화면 흐름 · 정차 상태 와이어프레임", style = MaterialTheme.typography.titleMedium)
-        Text("가상 위치·예시 캡슐입니다. 실제 주변 검색과 음성 재생은 연결되지 않았습니다.")
+        Text("DEV-05 샘플 캡슐 발견 · 정차 상태", style = MaterialTheme.typography.titleMedium)
+        Text("가상 차량 위치 · 사전 준비한 캡슐 · 시연용 계정입니다. 실제 서버 검색과 음성 재생은 연결되지 않았습니다.")
         if (page != DemoPage.HOME) OutlinedButton(onClick = back) { Text("뒤로") }
         when (page) {
             DemoPage.HOME -> {
                 Text("내 주변의 목소리", style = MaterialTheme.typography.headlineSmall)
-                when (state) {
-                    DemoState.CHECKING -> Text("위치를 확인하는 중입니다.")
-                    DemoState.AVAILABLE -> {
-                        Text("가상 위치 · 주변 캡슐 1개")
-                        Button(onClick = { page = DemoPage.LIST }) { Text("캡슐 목록 보기") }
+                when (scenario) {
+                    DemoScenario.CHECKING -> Text("위치를 확인하는 중입니다.")
+                    DemoScenario.UNAVAILABLE -> Text("위치를 사용할 수 없습니다. 위치 권한과 연결 상태를 확인해 주세요.")
+                    else -> {
+                        Text("가상 위치 기준 · 접근 가능한 샘플 캡슐 ${results.size}개")
+                        if (results.isEmpty()) Text("이 위치에는 들을 수 있는 캡슐이 없습니다.")
+                        else Button(onClick = { page = DemoPage.LIST }) { Text("캡슐 목록 보기") }
                     }
-                    DemoState.EMPTY -> Text("이 위치에는 들을 수 있는 캡슐이 없습니다.")
-                    DemoState.UNAVAILABLE -> Text("위치를 사용할 수 없습니다. 위치 권한과 연결 상태를 확인해 주세요.")
                 }
-                Text("화면 상태 확인", style = MaterialTheme.typography.titleMedium)
+                Text("DEV-05 검증 조건", style = MaterialTheme.typography.titleMedium)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { state = DemoState.AVAILABLE }) { Text("있음") }
-                    OutlinedButton(onClick = { state = DemoState.EMPTY }) { Text("없음") }
-                    OutlinedButton(onClick = { state = DemoState.UNAVAILABLE }) { Text("오류") }
+                    OutlinedButton(onClick = { changeScenario(DemoScenario.FAMILY_NEAR) }) { Text("가족·반경 안") }
+                    OutlinedButton(onClick = { changeScenario(DemoScenario.FAMILY_FAR) }) { Text("반경 밖") }
                 }
-                OutlinedButton(onClick = { state = DemoState.CHECKING }) { Text("확인 중") }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = { changeScenario(DemoScenario.NOT_SELECTED) }) { Text("대상 아님") }
+                    OutlinedButton(onClick = { changeScenario(DemoScenario.EXPIRED) }) { Text("기간 만료") }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = { changeScenario(DemoScenario.UNAVAILABLE) }) { Text("위치 오류") }
+                    OutlinedButton(onClick = { changeScenario(DemoScenario.CHECKING) }) { Text("확인 중") }
+                }
+                if (scenario == DemoScenario.EXPIRED) Text("만료 조건 확인을 위해 검증 시각만 가상으로 8일 뒤로 옮겼습니다.")
                 OutlinedButton(onClick = { context.startActivity(Intent(context, Dev02ProbeActivity::class.java)) }) {
                     Text("DEV-02 기술 진단")
                 }
             }
             DemoPage.LIST -> {
                 Text("주변 캡슐", style = MaterialTheme.typography.headlineSmall)
-                Text("가상 위치 기준 · 접근 가능한 예시 1개")
-                OutlinedButton(onClick = { page = DemoPage.DETAIL }, modifier = Modifier.fillMaxWidth()) {
-                    Text("퇴근길 인사 · 가족 · 약 20초 · 320m")
+                Text("가상 위치 기준 · 접근 가능한 샘플 ${results.size}개")
+                results.forEach { capsule ->
+                    OutlinedButton(onClick = { page = DemoPage.DETAIL }, modifier = Modifier.fillMaxWidth()) {
+                        Text("${capsule.title} · ${capsule.authorDisplayName} · ${capsule.durationMs / 1000}초 · ${capsule.distanceMeters}m")
+                    }
                 }
                 Text("목록을 여는 것만으로 음성이 재생되지 않습니다.")
             }
-            DemoPage.DETAIL -> {
-                Text("퇴근길 인사", style = MaterialTheme.typography.headlineSmall)
-                Text("가족 · 약 20초 · 320m")
-                Text("공개 대상: 지정된 가족 · 예시 캡슐")
+            DemoPage.DETAIL -> if (selected != null) {
+                Text(selected.title, style = MaterialTheme.typography.headlineSmall)
+                Text("${selected.authorDisplayName} · ${selected.durationMs / 1000}초 · ${selected.distanceMeters}m")
+                Text("공개 대상: 지정된 가족 · 사전 준비한 샘플")
                 Text("재생 여부를 직접 선택해 주세요.")
                 Button(onClick = { page = DemoPage.PLAYER }) { Text("재생 화면 열기") }
             }
-            DemoPage.PLAYER -> {
-                Text("퇴근길 인사", style = MaterialTheme.typography.headlineSmall)
-                Text("재생 준비 · 예시 화면")
+            DemoPage.PLAYER -> if (selected != null) {
+                Text(selected.title, style = MaterialTheme.typography.headlineSmall)
+                Text("재생 준비 · 샘플 화면")
                 Text("음성 재생과 일시정지·종료는 DEV-06에서 연결합니다.")
                 OutlinedButton(onClick = { page = DemoPage.LIST }) { Text("목록으로") }
             }
