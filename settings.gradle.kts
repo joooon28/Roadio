@@ -25,3 +25,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "Roadio"
 include(":app")
+include(":mobile")
