@@ -18,3 +18,7 @@ Pleos Connect 차량 앱 공모전용 초기 프로젝트입니다. 사용자는
 - 차량 시연 앱: `:app` (`com.joons.roadio`). Pleos Connect AVD에서 검증한다.
 - 모바일 녹음 앱: `:mobile` (`com.joons.roadio.mobile`). 일반 Android 휴대폰 에뮬레이터에서 실행한다. `./gradlew :mobile:assembleDebug --offline --no-daemon --max-workers=2`로 모바일 앱만 빌드할 수 있다.
 - 모바일 앱은 DEV-07 현재 녹음·미리 듣기까지만 동작하며 서버·차량으로 파일을 전송하지 않는다. 상세 결과는 [DEV-07 검증 기록](DEV-07-validation.md)을 참고한다.
+
+## 와이어프레임
+
+차량·모바일의 현재 저충실도 화면과 확인 범위는 [와이어프레임 기록](Roadio_WIREFRAME-2026-11-07.md)을 참고하세요. 모바일의 위치·공개 설정·등록과 실제 서버 연결은 아직 구현 전입니다.

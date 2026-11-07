@@ -11,8 +11,11 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -42,31 +45,40 @@ class MobileActivity : ComponentActivity() {
             MaterialTheme {
                 Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     Text("Roadio 모바일", style = MaterialTheme.typography.headlineMedium)
-                    Text("DEV-07 녹음·미리 듣기 · 휴대폰 내부 임시 음성")
-                    Text("녹음한 음성은 아직 서버나 차량에 전송되지 않습니다.")
-                    Text(when (stage) {
-                        Stage.EMPTY -> "녹음 전"
-                        Stage.RECORDING -> "녹음 중"
-                        Stage.PREVIEW -> "미리 듣기 준비"
-                        Stage.PLAYING -> "미리 듣는 중"
-                    })
-                    message?.let { Text(it) }
-                    when (stage) {
-                        Stage.EMPTY -> Button(onClick = ::checkPermissionAndRecord) { Text("녹음 시작") }
-                        Stage.RECORDING -> {
-                            Button(onClick = ::finishRecording) { Text("녹음 종료") }
-                            OutlinedButton(onClick = ::discardDraft) { Text("취소") }
-                        }
-                        Stage.PREVIEW -> {
-                            Button(onClick = ::playPreview) { Text("미리 듣기") }
-                            OutlinedButton(onClick = ::checkPermissionAndRecord) { Text("다시 녹음") }
-                            OutlinedButton(onClick = ::discardDraft) { Text("녹음 삭제") }
-                        }
-                        Stage.PLAYING -> {
-                            Button(onClick = ::stopPreview) { Text("재생 중지") }
-                            OutlinedButton(onClick = ::discardDraft) { Text("녹음 삭제") }
+                    Text("음성 캡슐 만들기", style = MaterialTheme.typography.titleLarge)
+                    Text("1 녹음 · 미리 듣기   →   2 위치 · 공개 설정   →   3 등록")
+                    HorizontalDivider()
+                    OutlinedCard(Modifier.fillMaxWidth()) {
+                        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                            Text("01 · 목소리 녹음", style = MaterialTheme.typography.titleMedium)
+                            Text("휴대폰 안에만 임시 저장됩니다. 서버나 차량에는 아직 전송되지 않습니다.")
+                            HorizontalDivider()
+                            Text(when (stage) {
+                                Stage.EMPTY -> "녹음 전"
+                                Stage.RECORDING -> "녹음 중"
+                                Stage.PREVIEW -> "미리 듣기 준비"
+                                Stage.PLAYING -> "미리 듣는 중"
+                            }, style = MaterialTheme.typography.titleLarge)
+                            message?.let { Text(it) }
+                            when (stage) {
+                                Stage.EMPTY -> Button(onClick = ::checkPermissionAndRecord) { Text("녹음 시작") }
+                                Stage.RECORDING -> {
+                                    Button(onClick = ::finishRecording) { Text("녹음 종료") }
+                                    OutlinedButton(onClick = ::discardDraft) { Text("취소") }
+                                }
+                                Stage.PREVIEW -> {
+                                    Button(onClick = ::playPreview) { Text("미리 듣기") }
+                                    OutlinedButton(onClick = ::checkPermissionAndRecord) { Text("다시 녹음") }
+                                    OutlinedButton(onClick = ::discardDraft) { Text("녹음 삭제") }
+                                }
+                                Stage.PLAYING -> {
+                                    Button(onClick = ::stopPreview) { Text("재생 중지") }
+                                    OutlinedButton(onClick = ::discardDraft) { Text("녹음 삭제") }
+                                }
+                            }
                         }
                     }
+                    Text("현재는 녹음과 미리 듣기만 체험할 수 있습니다. 위치·공개 설정과 등록은 준비 중입니다.")
                 }
             }
         }
