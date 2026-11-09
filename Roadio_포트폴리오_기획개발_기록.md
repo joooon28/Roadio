@@ -384,4 +384,5 @@
 - **과정에서 발견한 문제:** 사용자가 배포 설정 추가 전에 Railway와 GitHub 저장소를 연결했고 첫 배포는 Build image 단계에서 실패했다. Railpack이 Android 루트의 Gradle·Java를 설치하려 한 구성 문제와 Railway 외부 네트워크 장애 공지가 함께 관찰됐다. 전체 로그가 없어 외부 장애를 단독 원인으로 확정하지 않았다.
 - **해결 선택:** Python 3.12 Docker 이미지에 서버와 웹만 포함하고 Android·Gradle 파일은 제외했다. `$PORT`, `/data` 볼륨 경로, 환경변수 시연 계정 초기화를 명시했다. 안정적인 계정 ID로 재시작 후 같은 사용자 관계를 유지하되 토큰은 해시만 저장한다.
 - **관찰된 결과:** 서버 테스트 6개, Python 문법, 공개 바인딩, 두 계정 인증과 작성자→차량 수신자 관계를 로컬에서 확인했다. Docker 데몬이 꺼져 로컬 이미지 빌드는 실행 전 중단됐으므로 이미지 성공을 주장하지 않는다. 상세 증거는 `DEV-13-validation.md`와 `docs/evidence/roadio-railway-first-build-failed.png`에 있다.
+- **배포 결과 갱신:** `5d1bc33` 푸시 뒤 Railway가 Dockerfile을 사용해 Python 3.12 이미지에 `server`와 `web`만 복사했고, 컨테이너에서 Roadio 서버가 `0.0.0.0:8080`으로 시작해 배포가 `ACTIVE`가 됐다. 첫 실패의 Android 자동 감지 문제는 해소됐다. 아직 서비스는 공개되지 않았고 볼륨·비밀값이 없어 사용자 가치나 통합 성공의 증거는 아니다.
 - **다음 검증:** GitHub 푸시 후 Railway 재배포 로그, `/v1/health`, 재시작 후 데이터 보존, iPhone 등록→Pleos 검색·선택 재생을 관찰한다. 배포 편의성을 제품 사업성의 증거로 확대하지 않는다.

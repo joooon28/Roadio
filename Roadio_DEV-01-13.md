@@ -391,7 +391,7 @@ Figma Title input의 Default→Typing→Complete 흐름을 보완했다. 기본 
 
 ## DEV-13 Railway HTTPS 통합 시연 준비 시작 (2026-11-09)
 
-- **상태:** 배포 설정과 로컬 서버 검증 완료. GitHub 푸시·Railway 재배포·볼륨·HTTPS·기기 간 통합 검증 대기.
-- **결과:** Dockerfile이 Python 서버와 웹만 포함하고 Railway 공개 포트·영속 경로를 사용하도록 했다. 환경변수 토큰으로 안정적인 작성자·차량 계정과 수신자 관계를 중복 없이 만들며 원문 토큰은 저장·로그하지 않는다. 서버 테스트 6개와 공개 바인딩·인증을 로컬에서 확인했다.
-- **한계:** 로컬 Docker 데몬이 꺼져 이미지 빌드는 Railway에서 확인해야 한다. 아직 배포 URL이나 원격 데이터 보존·iPhone→Pleos 증거는 없다.
+- **상태:** Railway Docker 이미지 빌드·컨테이너 시작 완료. 볼륨·비밀값·공개 HTTPS·기기 간 통합 검증 대기.
+- **결과:** Dockerfile이 Python 서버와 웹만 포함하고 Railway 공개 포트·영속 경로를 사용하도록 했다. 환경변수 토큰으로 안정적인 작성자·차량 계정과 수신자 관계를 중복 없이 만들며 원문 토큰은 저장·로그하지 않는다. 서버 테스트 6개와 공개 바인딩·인증을 로컬에서 확인했다. 커밋 `5d1bc33` 푸시 뒤 Railway Build Logs에서 Python 3.12 Dockerfile과 `server`·`web` 복사를 확인했고 서비스가 `ACTIVE`가 됐다. Deploy Logs의 서버 주소는 `0.0.0.0:8080`, 모드는 `railway-demo`였다.
+- **한계:** 서비스는 아직 `Unexposed`이며 `/data` 볼륨과 시연 토큰도 설정하지 않았다. 공개 URL이나 원격 데이터 보존·iPhone→Pleos 증거는 없다.
 - **문서:** [DEV-13 검증 기록](DEV-13-validation.md).

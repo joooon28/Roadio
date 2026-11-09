@@ -1,7 +1,7 @@
 # DEV-13 모바일→서버→차량 통합 시연·제출 준비
 
 - 날짜: 2026-11-09
-- 상태: **Railway 배포 설정 구현·로컬 서버 검증 완료, GitHub 푸시와 Railway 재배포 대기**
+- 상태: **Railway Docker 배포 성공, 영속 볼륨·비밀값·HTTPS 설정 대기**
 
 ## 작업 목표·근거
 
@@ -14,7 +14,7 @@ Vercel 정적 웹앱과 Mac 로컬 서버를 분리한 상태에서는 iPhone에
 - [x] Railway `$PORT`, 공개 바인딩, `/data` 영속 경로 연결 준비
 - [x] 환경변수 기반 작성자·차량 계정 초기화와 토큰 해시 저장
 - [x] 서버 자동 테스트·문법·공개 바인딩·계정 인증 로컬 검증
-- [ ] 배포 설정을 GitHub `main`에 푸시하고 Railway 이미지 빌드 성공 확인
+- [x] 배포 설정을 GitHub `main`에 푸시하고 Railway 이미지 빌드 성공 확인
 - [ ] Railway `/data` 영속 볼륨 연결과 재배포 후 데이터 보존 확인
 - [ ] Railway 비밀 환경변수와 `/v1/health` 상태 확인 설정
 - [ ] Railway 공개 HTTPS 도메인 생성과 NAVER Maps 허용 URL 등록
@@ -48,6 +48,13 @@ Vercel 정적 웹앱과 Mac 로컬 서버를 분리한 상태에서는 iPhone에
 - `git diff --check`: 통과.
 - Docker CLI는 설치돼 있지만 로컬 Docker 데몬이 꺼져 있어 `docker build`는 실행 전에 중단됐다. 따라서 Docker 이미지 자체의 성공은 Railway 재배포에서 확인해야 한다.
 
+## GitHub 푸시와 Railway 재배포 결과
+
+- **커밋·푸시:** 배포 코드·테스트·DEV 문서·증거만 선별해 `5d1bc33 Prepare Railway HTTPS deployment`로 커밋하고 GitHub `main`에 푸시했다. 기존 `.idea`와 별도 디자인 문서는 커밋하지 않았다.
+- **이미지 빌드:** Railway가 새 커밋을 자동 감지했다. Build Logs에서 `load build definition from Dockerfile`, `python:3.12-slim`, `COPY server`, `COPY web`을 확인해 Gradle·Java 자동 감지가 제거됐음을 검증했다. `.dockerignore` 적용 뒤 업로드된 스냅샷은 약 4.8MB였고 이미지 푸시는 약 42.5MB였다.
+- **배포:** Railway 화면이 `Online`, 배포가 `ACTIVE / Deployment successful`로 전환됐다. Deploy Logs에서 컨테이너 시작과 `Roadio API at http://0.0.0.0:8080 (railway-demo)`를 확인했다. 현재 서비스는 아직 `Unexposed service`이며 공개 HTTPS 주소는 없다.
+- **판단:** Docker 이미지와 Railway 런타임 시작은 완료로 판단한다. `/data` 볼륨과 부트스트랩 비밀값을 아직 설정하지 않았으므로 현재 컨테이너 파일과 계정은 재배포 후 보존되지 않으며 모바일·차량 인증에 사용할 준비가 끝난 것은 아니다.
+
 ## 포트폴리오 관점의 결정·증거
 
 - **문제와 근거:** 모바일·차량 화면을 각각 구현해도 같은 원격 저장소를 공유하지 않으면 핵심 가치인 장소 기반 비동기 음성 전달을 증명할 수 없다.
@@ -58,8 +65,6 @@ Vercel 정적 웹앱과 Mac 로컬 서버를 분리한 상태에서는 iPhone에
 
 ## 다음 작업
 
-1. 구현·문서 파일만 커밋하고 GitHub `main`에 푸시한다.
-2. Railway 자동 재배포에서 `Using detected Dockerfile`과 이미지 빌드 성공을 확인한다.
-3. 서비스에 `/data` 볼륨, 두 비밀 토큰, Healthcheck Path `/v1/health`를 설정한다.
-4. 공개 HTTPS 도메인을 만든 뒤 health 응답과 재시작 후 DB 보존을 확인한다.
-5. NAVER Maps 웹 서비스 URL을 추가하고 iPhone→Pleos 통합 과업을 실행한다.
+1. 서비스에 `/data` 볼륨, 두 비밀 토큰, Healthcheck Path `/v1/health`를 설정한다.
+2. 공개 HTTPS 도메인을 만든 뒤 health 응답과 재시작 후 DB 보존을 확인한다.
+3. NAVER Maps 웹 서비스 URL을 추가하고 iPhone→Pleos 통합 과업을 실행한다.
