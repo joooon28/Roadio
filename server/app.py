@@ -13,13 +13,14 @@ from email.parser import BytesParser
 from email.policy import default
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlsplit
-from uuid import UUID, uuid4
+from uuid import NAMESPACE_URL, UUID, uuid4, uuid5
 
 MAX_AUDIO = 10 * 1024 * 1024
 MAX_REQUEST = MAX_AUDIO + 64 * 1024
 MIMES = {'audio/webm', 'audio/mp4', 'audio/mpeg', 'audio/wav', 'audio/x-wav', 'audio/ogg', 'audio/aac'}
 RADIUS = 100
 LIFETIME = timedelta(hours=72)
+TOKEN_PATTERN = re.compile(r'[A-Za-z0-9_-]{32,128}')
 
 
 def utcnow():
@@ -69,11 +70,40 @@ def connect(data_dir):
     return db
 
 
+def bootstrap_demo_users(db, env=os.environ):
+    """Provision stable demo users from deployment secrets without logging either token."""
+    owner_token = env.get('ROADIO_BOOTSTRAP_OWNER_TOKEN', '')
+    vehicle_token = env.get('ROADIO_BOOTSTRAP_VEHICLE_TOKEN', '')
+    if not owner_token and not vehicle_token:
+        return None
+    if not TOKEN_PATTERN.fullmatch(owner_token) or not TOKEN_PATTERN.fullmatch(vehicle_token):
+        raise ValueError('both Roadio bootstrap tokens must contain 32–128 URL-safe characters')
+    if owner_token == vehicle_token:
+        raise ValueError('Roadio bootstrap owner and vehicle tokens must differ')
+    owner_id = str(uuid5(NAMESPACE_URL, 'https://roadio.app/demo/owner'))
+    vehicle_id = str(uuid5(NAMESPACE_URL, 'https://roadio.app/demo/vehicle'))
+    owner_name = env.get('ROADIO_BOOTSTRAP_OWNER_NAME', 'Roadio 시연 작성자').strip()
+    vehicle_name = env.get('ROADIO_BOOTSTRAP_VEHICLE_NAME', 'Roadio 차량 청취자').strip()
+    if not owner_name or not vehicle_name or len(owner_name) > 60 or len(vehicle_name) > 60:
+        raise ValueError('Roadio bootstrap display names must contain 1–60 characters')
+    with db:
+        db.execute('''INSERT INTO users (id, display_name, token_hash) VALUES (?,?,?)
+                      ON CONFLICT(id) DO UPDATE SET display_name=excluded.display_name,
+                                                    token_hash=excluded.token_hash''',
+                   (owner_id, owner_name, hashlib.sha256(owner_token.encode()).hexdigest()))
+        db.execute('''INSERT INTO users (id, display_name, token_hash) VALUES (?,?,?)
+                      ON CONFLICT(id) DO UPDATE SET display_name=excluded.display_name,
+                                                    token_hash=excluded.token_hash''',
+                   (vehicle_id, vehicle_name, hashlib.sha256(vehicle_token.encode()).hexdigest()))
+        db.execute('INSERT OR IGNORE INTO recipients VALUES (?,?)', (owner_id, vehicle_id))
+    return {'ownerUserId': owner_id, 'vehicleUserId': vehicle_id}
+
+
 def token_user(db, header):
     if not header.startswith('Bearer '):
         return None
     token = header[7:]
-    if not re.fullmatch(r'[A-Za-z0-9_-]{32,128}', token):
+    if not TOKEN_PATTERN.fullmatch(token):
         return None
     return db.execute('SELECT * FROM users WHERE token_hash=?', (hashlib.sha256(token.encode()).hexdigest(),)).fetchone()
 
@@ -195,7 +225,7 @@ class Api(SimpleHTTPRequestHandler):
     def do_GET(self):
         path = urlsplit(self.path).path
         if path == '/v1/health':
-            self.send_json(200, {'service': 'roadio', 'mode': 'local-development'})
+            self.send_json(200, {'service': 'roadio', 'mode': getattr(self.server, 'mode', 'local-development')})
             return
         if not path.startswith('/v1/'):
             return super().do_GET()
@@ -427,12 +457,20 @@ def main():
             parser.error('users must exist and the relationship must be new')
         print('Test recipient added. This command does not represent a production invitation or consent flow.')
     else:
-        if args.host not in ('127.0.0.1', 'localhost'):
-            parser.error('DEV-09 prototype may listen only on localhost')
+        public_bind = os.environ.get('ROADIO_ALLOW_PUBLIC_BIND') == '1'
+        if args.host not in ('127.0.0.1', 'localhost') and not public_bind:
+            parser.error('set ROADIO_ALLOW_PUBLIC_BIND=1 to listen outside localhost')
+        try:
+            provisioned = bootstrap_demo_users(db)
+        except ValueError as error:
+            parser.error(str(error))
+        if provisioned:
+            print(json.dumps({'bootstrapUsersReady': True, **provisioned}), flush=True)
         server = ThreadingHTTPServer((args.host, args.port), Api)
         server.data_dir, server.demo = args.data_dir, args.demo
+        server.mode = os.environ.get('ROADIO_DEPLOYMENT_MODE', 'local-development')
         server.web_dir = Path(__file__).resolve().parent.parent / 'web'
-        print(f'Roadio API at http://{args.host}:{args.port} (local development only)', flush=True)
+        print(f'Roadio API at http://{args.host}:{args.port} ({server.mode})', flush=True)
         try:
             server.serve_forever()
         except KeyboardInterrupt:

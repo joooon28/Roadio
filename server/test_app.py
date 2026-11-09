@@ -9,7 +9,7 @@ from urllib.request import Request, urlopen
 from uuid import uuid4
 from http.server import ThreadingHTTPServer
 
-from app import Api, connect, parse_stamp, stamp, utcnow
+from app import Api, bootstrap_demo_users, connect, parse_stamp, stamp, token_user, utcnow
 from datetime import timedelta
 
 
@@ -132,6 +132,32 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(len(data['capsules']), 1)
         self.assertEqual(data['capsules'][0]['visibility'], 'PUBLIC')
+
+    def test_deployment_bootstrap_users_are_stable_idempotent_and_secret(self):
+        env = {'ROADIO_BOOTSTRAP_OWNER_TOKEN': 'owner_' + 'x' * 36,
+               'ROADIO_BOOTSTRAP_VEHICLE_TOKEN': 'vehicle_' + 'y' * 36,
+               'ROADIO_BOOTSTRAP_OWNER_NAME': '배포 작성자',
+               'ROADIO_BOOTSTRAP_VEHICLE_NAME': '배포 차량'}
+        first = bootstrap_demo_users(self.db, env)
+        second = bootstrap_demo_users(self.db, env)
+        self.assertEqual(first, second)
+        self.assertEqual(token_user(self.db, 'Bearer ' + env['ROADIO_BOOTSTRAP_OWNER_TOKEN'])['id'],
+                         first['ownerUserId'])
+        self.assertEqual(token_user(self.db, 'Bearer ' + env['ROADIO_BOOTSTRAP_VEHICLE_TOKEN'])['id'],
+                         first['vehicleUserId'])
+        self.assertEqual(self.db.execute('SELECT COUNT(*) FROM recipients WHERE owner_id=? AND recipient_id=?',
+                                         (first['ownerUserId'], first['vehicleUserId'])).fetchone()[0], 1)
+        stored = ' '.join(row['token_hash'] for row in self.db.execute('SELECT token_hash FROM users'))
+        self.assertNotIn(env['ROADIO_BOOTSTRAP_OWNER_TOKEN'], stored)
+        self.assertNotIn(env['ROADIO_BOOTSTRAP_VEHICLE_TOKEN'], stored)
+
+    def test_deployment_bootstrap_requires_two_distinct_valid_tokens(self):
+        with self.assertRaises(ValueError):
+            bootstrap_demo_users(self.db, {'ROADIO_BOOTSTRAP_OWNER_TOKEN': 'short'})
+        token = 'same_' + 'z' * 36
+        with self.assertRaises(ValueError):
+            bootstrap_demo_users(self.db, {'ROADIO_BOOTSTRAP_OWNER_TOKEN': token,
+                                           'ROADIO_BOOTSTRAP_VEHICLE_TOKEN': token})
 
 
 if __name__ == '__main__':
