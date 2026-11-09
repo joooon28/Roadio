@@ -106,10 +106,10 @@ button{cursor:pointer}
 .review-back img{display:block;width:12px;height:17px}
 .review h1{position:absolute;z-index:2;top:calc(env(safe-area-inset-top) + 150px);left:20px;right:20px;margin:0;color:var(--neutral-900p);font-size:24px;font-weight:600;line-height:1.4;letter-spacing:-.6px;text-align:center}
 .review-identity{position:absolute;z-index:3;top:calc(env(safe-area-inset-top) + 276px);left:20px;right:20px;display:flex;flex-direction:column;align-items:center;gap:0;text-align:center}
-.review-audience-icon{display:grid;place-items:center;width:40px;height:40px}
-.review-audience-icon img{display:block;max-width:40px;max-height:40px}
-.review-tinted-icon{filter:brightness(0) saturate(100%) invert(27%) sepia(82%) saturate(1938%) hue-rotate(211deg) brightness(91%) contrast(91%)}
-.review-story-title{display:block;max-width:100%;min-height:34px;margin-top:10px;padding:6px 3px 5px;border-bottom:1.5px solid var(--primary-600p);color:var(--primary-600p);font-size:16px;font-weight:600;line-height:1.4;letter-spacing:-.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.review-audience-icon{--audience-mask:url("./assets/review-lock.svg");display:block;width:40px;height:40px;background:var(--primary-600p);-webkit-mask:var(--audience-mask) center no-repeat;mask:var(--audience-mask) center no-repeat}
+.review-audience-icon[data-audience="neighbors"]{--audience-mask:url("./assets/audience-neighbors.svg")}
+.review-audience-icon[data-audience="public"]{--audience-mask:url("./assets/audience-globe.svg")}
+.review-story-title{display:block;max-width:100%;min-height:34px;margin-top:10px;padding:6px 3px 5px;color:var(--primary-600p);font-size:18px;font-weight:600;line-height:1.4;letter-spacing:-.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .review-address{max-width:min(300px,100%);margin:10px 0 0;color:var(--neutral-600);font-size:13px;font-weight:500;line-height:1.4;letter-spacing:-.325px;overflow-wrap:anywhere}
 .review-art{position:absolute;z-index:1;top:calc(50% - 32px);left:50%;display:grid;place-items:center;width:240px;height:240px;transform:translateX(-50%);border-radius:999px;background:radial-gradient(circle,rgba(145,178,239,.78) 5%,rgba(190,210,248,.48) 30%,rgba(223,233,252,.2) 60%,rgba(240,245,254,.08) 79.8%,transparent 100%);pointer-events:none}
 .review-art img{display:block;width:80px;height:80px}

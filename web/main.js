@@ -310,9 +310,8 @@ function resolveReviewAddress(location) {
 function openReviewScreen() {
   document.getElementById('review-error').textContent = '';
   document.getElementById('review-story-title').textContent = title.value.trim();
-  reviewAudienceIcon.src = { private: './assets/review-lock.svg', neighbors: './assets/audience-neighbors.svg', public: './assets/audience-globe.svg' }[selectedAudience];
-  reviewAudienceIcon.alt = { private: '나만', neighbors: '내 이웃', public: '전체 공개' }[selectedAudience];
-  reviewAudienceIcon.classList.toggle('review-tinted-icon', selectedAudience !== 'private');
+  reviewAudienceIcon.dataset.audience = selectedAudience;
+  reviewAudienceIcon.setAttribute('aria-label', { private: '나만', neighbors: '내 이웃', public: '전체 공개' }[selectedAudience]);
   resolveReviewAddress(selectedLocation);
   updateSeek();
   show(reviewScreen);
@@ -411,18 +410,21 @@ function showPending(heading, description) {
   show(pending);
 }
 function updateSeek() {
-  const duration = Number.isFinite(audio.duration) ? audio.duration : 0;
+  const duration = !audio.hasAttribute('src') ? 0 :
+    Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : lastRecordingDurationMs / 1000;
   const current = duration ? Math.min(audio.currentTime || 0, duration) : 0;
+  const currentLabel = formatTime(Math.floor(current));
+  const durationLabel = formatTime(Math.floor(duration));
   const fraction = duration ? current / duration : 0;
   const angle = Math.PI * (1 - fraction);
   [[seek, seekPath, seekHandle, playbackTime], [reviewSeek, reviewSeekPath, reviewSeekHandle, reviewPlaybackTime]].forEach(([slider, path, handle, time]) => {
     path.style.strokeDasharray = `${fraction * 100} 100`;
     handle.style.left = `${99.623 + 87.3824 * Math.cos(angle)}px`;
     handle.style.top = `${6 + 87.3824 * Math.sin(angle)}px`;
-    time.textContent = formatTime(Math.floor(current));
+    time.textContent = `${currentLabel}/${durationLabel}`;
     slider.setAttribute('aria-valuemax', String(Math.floor(duration)));
     slider.setAttribute('aria-valuenow', String(Math.floor(current)));
-    slider.setAttribute('aria-valuetext', formatTime(Math.floor(current)));
+    slider.setAttribute('aria-valuetext', `현재 ${currentLabel}, 전체 ${durationLabel}`);
   });
 }
 function updatePlayButton() {
