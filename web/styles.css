@@ -44,7 +44,9 @@ button{cursor:pointer}
 .seek-progress{overflow:visible;pointer-events:none}
 .seek-progress path{fill:none;stroke:var(--primary-600p);stroke-width:4.5;stroke-dasharray:0 100;filter:drop-shadow(0 4px 5px rgba(0,0,0,.05))}
 .seek-handle{position:absolute;left:12.24px;top:6px;display:block;transform:translate(-50%,-50%);pointer-events:none}
-.preview-playback{position:absolute;z-index:3;top:calc(50% + 192px);left:0;right:0;display:flex;align-items:center;justify-content:center;gap:6px;color:var(--primary-600p);font-size:16px;font-weight:600;letter-spacing:-.4px}
+.preview-playback,.review-playback{position:absolute;z-index:3;top:calc(50% + 192px);left:0;right:0;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;column-gap:6px;color:var(--primary-600p);font-size:16px;font-weight:600;letter-spacing:-.4px}
+.preview-playback .play-toggle,.review-playback .play-toggle{justify-self:end}
+#playback-time,#review-playback-time{white-space:nowrap;font-variant-numeric:tabular-nums}
 .play-toggle{display:grid;place-items:center;width:24px;height:24px;padding:0;border:0;background:transparent}
 .play-toggle img{display:block}
 .preview audio{display:none}
@@ -115,7 +117,6 @@ button{cursor:pointer}
 .review-art img{display:block;width:80px;height:80px}
 .review-seek{position:absolute;z-index:3;left:50%;top:calc(50% + 76px);width:199.246px;height:109.623px;transform:translateX(-50%);touch-action:none;cursor:pointer;outline:0}
 .review-seek:focus-visible{outline:3px solid var(--primary-600p);outline-offset:5px;border-radius:8px}
-.review-playback{position:absolute;z-index:3;top:calc(50% + 192px);left:0;right:0;display:flex;align-items:center;justify-content:center;gap:6px;color:var(--primary-600p);font-size:16px;font-weight:600;letter-spacing:-.4px}
 .review-submit{position:absolute;z-index:3;left:50%;bottom:calc(env(safe-area-inset-bottom) + 30px);width:min(251px,calc(100% - 40px));transform:translateX(-50%);font-weight:600}
 .review-error{position:absolute;z-index:3;left:20px;right:20px;bottom:calc(env(safe-area-inset-bottom) + 92px);margin:0;color:var(--red-500p);font-size:13px;text-align:center}
 .review-back:focus-visible{outline:3px solid var(--primary-600p);outline-offset:3px}

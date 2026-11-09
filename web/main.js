@@ -421,7 +421,7 @@ function updateSeek() {
     path.style.strokeDasharray = `${fraction * 100} 100`;
     handle.style.left = `${99.623 + 87.3824 * Math.cos(angle)}px`;
     handle.style.top = `${6 + 87.3824 * Math.sin(angle)}px`;
-    time.textContent = `${currentLabel}/${durationLabel}`;
+    time.textContent = `${currentLabel} / ${durationLabel}`;
     slider.setAttribute('aria-valuemax', String(Math.floor(duration)));
     slider.setAttribute('aria-valuenow', String(Math.floor(current)));
     slider.setAttribute('aria-valuetext', `현재 ${currentLabel}, 전체 ${durationLabel}`);
