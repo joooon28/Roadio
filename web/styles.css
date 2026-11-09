@@ -172,5 +172,12 @@ button{cursor:pointer}
 @media(max-height:700px){.audience{padding-top:calc(env(safe-area-inset-top) + 108px)}.audience-content{gap:25px}.audience-choice{gap:18px}.audience-options{gap:10px}}
 @media(max-height:700px){.review h1{top:calc(env(safe-area-inset-top) + 120px)}.review-identity{top:calc(env(safe-area-inset-top) + 232px)}.review-art{top:calc(50% - 26px)}.review-seek{top:calc(50% + 58px)}.review-playback{top:calc(50% + 174px)}}
 
+/* The initial dynamic viewport in an installed iOS web app can change after a swipe. */
+@media(display-mode:standalone){
+  .app,.home,.preview,.pending,.audience,.review,.archive-screen{min-height:100vh}
+  .location{height:100vh}
+  .archive-card{height:calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 228px)}
+}
+
 
 @media(prefers-reduced-motion:reduce){.story-title{transition:none}}
