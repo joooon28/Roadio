@@ -101,10 +101,10 @@ object Dev05SampleData {
             ownerUserId = authorUserId,
             durationMs = 12_000,
             position = capsulePosition,
-            radiusMeters = 500.0,
+            radiusMeters = 100.0,
             visibility = SampleVisibility.SELECTED,
             selectedRecipientUserIds = setOf(recipientUserId),
-            expiresAt = now.plusSeconds(7 * 24 * 60 * 60),
+            expiresAt = now.plusSeconds(3 * 24 * 60 * 60),
         ),
     )
 }

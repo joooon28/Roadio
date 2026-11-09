@@ -1,11 +1,11 @@
 openapi: 3.1.0
 info:
   title: Roadio capsule contract
-  version: 0.1.0
-  description: DEV-03 design contract. No server endpoint is implemented yet.
+  version: 0.3.0
+  description: DEV-10 local web client integration. Public deployment and production identity are pending.
 servers:
-  - url: https://api.example.invalid
-    description: Placeholder; replace in DEV-09 before any network call.
+  - url: http://127.0.0.1:8787
+    description: Local development only. Use HTTPS and a production identity provider before deployment.
 security:
   - bearerAuth: []
 paths:
@@ -13,6 +13,12 @@ paths:
     post:
       summary: Create a capsule from a mobile recording
       operationId: createCapsule
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Stable random key reused when the same upload is retried.
+          schema: { type: string, minLength: 16, maxLength: 100 }
       requestBody:
         required: true
         content:
@@ -29,7 +35,7 @@ paths:
                 audio:
                   type: string
                   format: binary
-                  description: A recorded audio file; exact supported codecs and size limits are decided in DEV-07/09.
+                  description: Up to 10 MiB. Supported MIME types are audio/webm, audio/mp4, audio/mpeg, audio/wav, audio/x-wav, audio/ogg and audio/aac.
       responses:
         '201':
           description: Capsule created
@@ -39,7 +45,7 @@ paths:
                 $ref: '#/components/schemas/OwnerCapsule'
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
-        '413': { description: Audio exceeds the server limit; limit decided in DEV-09. }
+        '413': { description: Audio exceeds the 10 MiB server limit. }
     get:
       summary: List my capsules for the mobile app
       operationId: listOwnCapsules
@@ -99,6 +105,32 @@ paths:
   /v1/capsules/{capsuleId}:
     parameters:
       - $ref: '#/components/parameters/CapsuleId'
+    patch:
+      summary: Change an active capsule's visibility
+      operationId: changeOwnCapsuleVisibility
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [visibility]
+              additionalProperties: false
+              properties:
+                visibility: { $ref: '#/components/schemas/Visibility' }
+                selectedRecipientUserIds:
+                  type: array
+                  uniqueItems: true
+                  items: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Updated owner capsule
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OwnerCapsule' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
     delete:
       summary: Delete my capsule
       operationId: deleteOwnCapsule
@@ -106,12 +138,31 @@ paths:
         '204': { description: Deleted; subsequent search and audio requests exclude it. }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
+  /v1/me/recipients:
+    get:
+      summary: List the owner's configured test recipients
+      description: DEV-10 local roster, populated by CLI. It is not a production invitation or consent flow.
+      operationId: listMyRecipients
+      responses:
+        '200':
+          description: Test recipients
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required: [id, displayName]
+                  properties:
+                    id: { type: string, format: uuid }
+                    displayName: { type: string }
+        '401': { $ref: '#/components/responses/Unauthorized' }
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
-      description: Identity provider and token issuance are chosen in DEV-09. Both apps must resolve to the same server user ID.
+      description: DEV-09 local prototype uses manually provisioned random bearer tokens, stored as SHA-256 hashes. Production identity provider is still undecided. Both apps must resolve to the same server user ID.
   parameters:
     CapsuleId:
       name: capsuleId
@@ -146,7 +197,8 @@ components:
         longitude: { type: number, minimum: -180, maximum: 180 }
     CreateCapsule:
       type: object
-      required: [title, position, radiusMeters, visibility, expiresAt, contentOrigin]
+      description: Client omits discovery radius and expiry; server assigns 100 meters and expiresAt = createdAt + 72 hours.
+      required: [title, position, visibility, contentOrigin, durationMs]
       additionalProperties: false
       if:
         properties:
@@ -162,15 +214,14 @@ components:
         title: { type: string, minLength: 1, maxLength: 80 }
         description: { type: string, maxLength: 160 }
         position: { $ref: '#/components/schemas/GeoPoint' }
-        radiusMeters: { type: integer, minimum: 100, maximum: 3000, description: 'Provisional UX/technical range; validate in DEV-08.' }
         visibility: { $ref: '#/components/schemas/Visibility' }
         selectedRecipientUserIds:
           type: array
           uniqueItems: true
           items: { type: string, format: uuid }
           description: Required and nonempty only for SELECTED; empty/omitted for SELF or PUBLIC. Server validates each recipient.
-        expiresAt: { type: string, format: date-time, description: UTC instant after server receipt; maximum duration decided in DEV-09. }
         contentOrigin: { $ref: '#/components/schemas/ContentOrigin' }
+        durationMs: { type: integer, minimum: 1, maximum: 600000, description: Client-measured duration; server validates bounds. }
     CapsuleSummary:
       type: object
       required: [id, title, authorDisplayName, durationMs, visibility, expiresAt, distanceMeters, contentOrigin]
@@ -194,12 +245,12 @@ components:
         description: { type: string }
         ownerUserId: { type: string, format: uuid }
         position: { $ref: '#/components/schemas/GeoPoint' }
-        radiusMeters: { type: integer }
+        radiusMeters: { type: integer, const: 100, description: 'Server-assigned fixed discovery radius in meters.' }
         visibility: { $ref: '#/components/schemas/Visibility' }
         selectedRecipientUserIds:
           type: array
           items: { type: string, format: uuid }
-        expiresAt: { type: string, format: date-time }
+        expiresAt: { type: string, format: date-time, description: 'Server-assigned createdAt plus 72 hours.' }
         createdAt: { type: string, format: date-time }
         durationMs: { type: integer, minimum: 1 }
         contentOrigin: { $ref: '#/components/schemas/ContentOrigin' }

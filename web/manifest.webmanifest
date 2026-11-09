@@ -1,0 +1,13 @@
+{
+  "name": "Roadio",
+  "short_name": "Roadio",
+  "description": "길 위에 이야기를 남기는 위치 기반 음성 앱",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#c7d9fa",
+  "theme_color": "#c7d9fa",
+  "icons": [
+    { "src": "./assets/roadio-symbol.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
