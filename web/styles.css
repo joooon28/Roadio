@@ -59,7 +59,7 @@ button{cursor:pointer}
 .location-map-fallback strong{font-size:16px}
 .location-map-fallback span{color:var(--neutral-600)}
 .location-radius-preview{position:absolute;z-index:1;left:50%;top:50%;width:199px;height:199px;transform:translate(-50%,-50%);border:1px solid rgba(35,86,196,.7);border-radius:50%;background:rgba(145,178,239,.25);pointer-events:none}
-.location-center-pin{position:absolute;z-index:2;left:50%;top:50%;width:74px;height:86px;transform:translate(-50%,-57%);pointer-events:none}
+.location-center-pin{position:absolute;z-index:2;left:50%;top:50%;width:74px;height:86px;transform:translate(-50%,-57%);filter:drop-shadow(0 4px 8px rgba(0,0,0,.25));pointer-events:none}
 .location-back,.location-current{position:absolute;z-index:5;display:grid;place-items:center;padding:0;border:1px solid rgba(255,255,255,.7);box-shadow:0 4px 16px rgba(0,0,0,.15);cursor:pointer}
 .location-back{left:20px;top:calc(env(safe-area-inset-top) + 30px);width:56px;height:56px;border-radius:50%;background:rgba(247,248,249,.95)}
 .location-back img{width:12px;height:17px}
