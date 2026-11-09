@@ -73,6 +73,14 @@ class ApiTests(unittest.TestCase):
         status, headers, payload = self.request('POST', '/v1/capsules/nearby/search', user, body, 'application/json')
         return status, headers, json.loads(payload)
 
+    def test_web_entry_points_require_cache_revalidation(self):
+        for method in ('GET', 'HEAD'):
+            for path in ('/', '/index.html', '/index.html?view=current'):
+                with self.subTest(method=method, path=path):
+                    status, headers, _ = self.request(method, path, user=None)
+                    self.assertEqual(status, 200)
+                    self.assertEqual(headers['Cache-Control'], 'no-cache')
+
     def test_visibility_radius_expiry_delete_and_range(self):
         self.assertEqual(self.create('SELF')[0], 201)
         neighbor_id = self.people['neighbor'][0]

@@ -191,6 +191,11 @@ class Api(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(args[2].web_dir), **kwargs)
 
+    def end_headers(self):
+        if self.command in ('GET', 'HEAD') and urlsplit(self.path).path in ('/', '/index.html'):
+            self.send_header('Cache-Control', 'no-cache')
+        super().end_headers()
+
     def send_json(self, code, body):
         data = json.dumps(body, ensure_ascii=False).encode()
         self.send_response(code)
