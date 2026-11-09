@@ -68,8 +68,8 @@ class ApiTests(unittest.TestCase):
                                           {'Idempotency-Key': key or str(uuid4())})
         return status, json.loads(payload)
 
-    def search(self, user='stranger', lat=37.5665):
-        body = json.dumps({'position': {'latitude': lat, 'longitude': 126.978}, 'locationSource': 'PLEOS_EMULATOR'}).encode()
+    def search(self, user='stranger', lat=37.5665, source='PLEOS_EMULATOR'):
+        body = json.dumps({'position': {'latitude': lat, 'longitude': 126.978}, 'locationSource': source}).encode()
         status, headers, payload = self.request('POST', '/v1/capsules/nearby/search', user, body, 'application/json')
         return status, headers, json.loads(payload)
 
@@ -124,6 +124,14 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(self.create('SELECTED', [str(uuid4())])[0], 400)
         self.assertEqual(self.create('SELECTED', [])[0], 400)
         self.assertEqual(self.create('PUBLIC', [self.people['neighbor'][0]])[0], 400)
+
+    def test_manual_demo_location_is_explicit_and_still_uses_server_access_rules(self):
+        self.assertEqual(self.create('SELF')[0], 201)
+        self.assertEqual(self.create('PUBLIC')[0], 201)
+        status, _, data = self.search(source='DEMO_MANUAL')
+        self.assertEqual(status, 200)
+        self.assertEqual(len(data['capsules']), 1)
+        self.assertEqual(data['capsules'][0]['visibility'], 'PUBLIC')
 
 
 if __name__ == '__main__':

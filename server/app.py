@@ -311,7 +311,7 @@ class Api(SimpleHTTPRequestHandler):
                 if not isinstance(request, dict) or set(request) - {'position', 'locationSource', 'limit'}:
                     raise ValueError('invalid search request')
                 lat, lon = point(request.get('position'))
-                if request.get('locationSource') not in ('PLEOS_DEVICE', 'PLEOS_EMULATOR'):
+                if request.get('locationSource') not in ('PLEOS_DEVICE', 'PLEOS_EMULATOR', 'DEMO_MANUAL'):
                     raise ValueError('invalid locationSource')
                 limit = request.get('limit', 20)
                 if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 30:

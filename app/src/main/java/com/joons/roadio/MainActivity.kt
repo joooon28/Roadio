@@ -36,6 +36,8 @@ private enum class DemoPage { HOME, LIST, DETAIL, PLAYER }
 /** DEV-06 stationary sample discovery and selected playback; no server or live vehicle position. */
 class MainActivity : ComponentActivity() {
     private lateinit var playbackClient: RoadioPlaybackClient
+    private lateinit var vehicleLocation: VehicleDiscoveryController
+    private var showOfflineSample by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -45,18 +47,33 @@ class MainActivity : ComponentActivity() {
             return
         }
         playbackClient = RoadioPlaybackClient(this)
+        vehicleLocation = VehicleDiscoveryController(this)
         playbackClient.connect()
-        setContent { RoadioTheme { RoadioHome(playbackClient) } }
+        setContent {
+            RoadioTheme {
+                if (showOfflineSample) RoadioHome(playbackClient, onBackServer = { playbackClient.stop(); showOfflineSample = false })
+                else VehicleServerScreen(this, vehicleLocation, playbackClient, onOpenSample = {
+                    playbackClient.stop(); VehicleSelectedAudio.clear(); showOfflineSample = true
+                })
+            }
+        }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (::vehicleLocation.isInitialized) vehicleLocation.onPermissionResult(requestCode, grantResults)
     }
 
     override fun onDestroy() {
-        playbackClient.release()
+        if (::playbackClient.isInitialized) playbackClient.release()
+        if (::vehicleLocation.isInitialized) vehicleLocation.release()
+        VehicleSelectedAudio.clear()
         super.onDestroy()
     }
 }
 
 @Composable
-fun RoadioHome(playbackClient: RoadioPlaybackClient? = null) {
+fun RoadioHome(playbackClient: RoadioPlaybackClient? = null, onBackServer: (() -> Unit)? = null) {
     val context = LocalContext.current
     val sampleTime = remember { Instant.now() }
     val sampleCapsules = remember(sampleTime) { Dev05SampleData.capsules(sampleTime) }
@@ -86,6 +103,7 @@ fun RoadioHome(playbackClient: RoadioPlaybackClient? = null) {
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text("Roadio", style = MaterialTheme.typography.headlineLarge)
+        if (onBackServer != null) OutlinedButton(onClick = onBackServer) { Text("서버 연결 화면") }
         Text("차량에서 발견한 목소리 · 정차 시연", style = MaterialTheme.typography.titleMedium)
         Text("가상 차량 위치 · 사전 준비한 음성 · 시연용 계정 / 서버 검색 미연결")
         HorizontalDivider()

@@ -82,9 +82,9 @@ class RoadioPlaybackClient(private val context: Context) {
             errorMessage = "오디오 서비스 연결 전입니다. 다시 시도해 주세요."
             return
         }
-        if (capsuleId != Dev05SampleData.capsuleId) {
+        if (capsuleId != Dev05SampleData.capsuleId && VehicleSelectedAudio.uri(capsuleId) == null) {
             status = Status.ERROR
-            errorMessage = "재생할 수 없는 샘플입니다."
+            errorMessage = "재생할 수 없는 이야기입니다."
             return
         }
         status = Status.BUFFERING

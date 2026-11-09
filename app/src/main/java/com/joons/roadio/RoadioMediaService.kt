@@ -16,7 +16,7 @@ import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 
-/** DEV-06 local sample library. Server-authorized items replace this in DEV-11. */
+/** Media library with offline samples and explicitly selected server-authorized audio. */
 @androidx.annotation.OptIn(UnstableApi::class)
 class RoadioMediaService : MediaLibraryService() {
     private var session: MediaLibrarySession? = null
@@ -77,7 +77,11 @@ class RoadioMediaService : MediaLibraryService() {
                     when (requested.mediaId) {
                         Dev05SampleData.capsuleId -> capsuleSample()
                         dev02SampleId -> dev02Sample()
-                        else -> null
+                        else -> VehicleSelectedAudio.uri(requested.mediaId)?.let { audioUri ->
+                            MediaItem.Builder().setMediaId(requested.mediaId).setUri(audioUri)
+                                .setMediaMetadata(MediaMetadata.Builder().setTitle("Roadio 선택 재생")
+                                    .setIsBrowsable(false).setIsPlayable(true).build()).build()
+                        }
                     }
                 }
             )

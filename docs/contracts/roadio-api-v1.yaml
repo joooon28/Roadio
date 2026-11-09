@@ -186,8 +186,8 @@ components:
       description: PRELOADED_SAMPLE is allowed only in an explicitly labeled demo environment.
     LocationSource:
       type: string
-      enum: [PLEOS_DEVICE, PLEOS_EMULATOR]
-      description: Client display/diagnostic metadata, not a server authorization signal.
+      enum: [PLEOS_DEVICE, PLEOS_EMULATOR, DEMO_MANUAL]
+      description: Client display/diagnostic metadata, not a server authorization signal. DEMO_MANUAL is a typed simulation coordinate and must be visibly labelled.
     GeoPoint:
       type: object
       required: [latitude, longitude]
