@@ -8,6 +8,7 @@
   "background_color": "#c7d9fa",
   "theme_color": "#c7d9fa",
   "icons": [
-    { "src": "./assets/roadio-symbol.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+    { "src": "./assets/roadio-app-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "./assets/roadio-app-icon.png", "sizes": "500x500", "type": "image/png", "purpose": "any" }
   ]
 }
