@@ -389,15 +389,16 @@ Figma Title input의 Default→Typing→Complete 흐름을 보완했다. 기본 
 - **AVD 실제 결과:** 사용자가 일반 Android Studio에서 AVD를 켠 뒤 최신 APK를 작업자 1개로 한 번 빌드·설치했다. 별도 임시 서버·계정, 직접 입력 가상 좌표, `PRELOADED_SAMPLE` 12초 음원을 사용해 접근 가능한 결과 1개와 출처 표시를 확인했다. 상세 진입은 `READY`로 자동 재생하지 않았고 선택 재생→일시정지→재개→종료가 UI와 Media3 세션에서 `PLAYING`→`PAUSED`→`PLAYING`→`NONE`으로 일치했다. AVD 세션 볼륨이 0으로 보고되고 Pleos 셸 미디어 영역은 `재생 중인 항목 없음`으로 남아 실제 청취와 시스템 미디어 표면 노출은 미확인이다. 화면 증거와 상세 조건은 [DEV-11 검증 기록](DEV-11-validation.md)에 기록했다.
 - **HTTPS 배포 준비:** 2026-11-09 SQLite·음성 파일을 유지하면서 두 앱이 접근할 수 있는 우선 배포안으로 Railway Hobby 서비스 1개와 `/data` 볼륨을 선택했다. 예상 비용은 월 약 7천~1만원, 관리 상한은 1만5천원이며 실제 과금은 사용량에 따라 달라진다. 첫 자동 빌드는 Android Gradle·Java 자동 감지와 Railway 외부 네트워크 장애 공지가 함께 나타난 상태에서 Build image 단계에 실패했다. Python 전용 Dockerfile, `$PORT`, `/data`, 비밀 환경변수 계정 초기화와 테스트를 구현했으며 Railway 재배포·볼륨·HTTPS·통합 결과는 [DEV-13 검증 기록](DEV-13-validation.md)에 기록한다.
 
-## DEV-13 Railway HTTPS 통합 시연 준비 시작 (2026-11-09)
+## DEV-13 Railway HTTPS 통합 검증 (2026-11-09)
 
-- **상태:** Railway Docker 이미지 빌드·컨테이너 시작 완료. 볼륨·비밀값·공개 HTTPS·기기 간 통합 검증 대기.
+- **상태:** iPhone→Railway→Pleos AVD 핵심 통합 검증 완료. 제출 자료 연결과 추가 검증은 남아 있다.
 - **결과:** Dockerfile이 Python 서버와 웹만 포함하고 Railway 공개 포트·영속 경로를 사용하도록 했다. 환경변수 토큰으로 안정적인 작성자·차량 계정과 수신자 관계를 중복 없이 만들며 원문 토큰은 저장·로그하지 않는다. 서버 테스트 6개와 공개 바인딩·인증을 로컬에서 확인했다. 커밋 `5d1bc33` 푸시 뒤 Railway Build Logs에서 Python 3.12 Dockerfile과 `server`·`web` 복사를 확인했고 서비스가 `ACTIVE`가 됐다. Deploy Logs의 서버 주소는 `0.0.0.0:8080`, 모드는 `railway-demo`였다.
-- **한계:** 서비스는 아직 `Unexposed`이며 `/data` 볼륨과 시연 토큰도 설정하지 않았다. 공개 URL이나 원격 데이터 보존·iPhone→Pleos 증거는 없다.
 - **문서:** [DEV-13 검증 기록](DEV-13-validation.md).
 - **볼륨 설정 정정:** Railway 화면에서 `/data`·5GB 볼륨은 생성했지만 `Apply 5 changes`가 남아 있어 아직 적용 전이다. Hobby 볼륨의 5GB는 기본/최대 용량이며 축소는 지원하지 않고 실제 저장량 기준으로 과금된다. 함께 생긴 `function-bun`은 Bun 기반 별도 Function 서비스로 Roadio Python API에는 필요하지 않아 적용 전에 제거한다.
-- **볼륨 후속 상태:** `function-bun` 삭제 후 캔버스에는 온라인 Roadio와 `roadio-volume`만 남고 적용 대기 표시가 사라졌다. 연결은 확인했지만 데이터 생성→재배포 뒤 보존은 아직 검증하지 않았다.
-- **비밀 변수 재배포:** 작성자·차량용 64자 난수 토큰 두 개를 Railway에 마스킹 변수로 등록해 배포했다. 배포 `1e78420a`가 ACTIVE가 됐고 로그에서 볼륨 마운트, `bootstrapUsersReady: true`, 토큰 원문 없는 두 사용자 ID, `0.0.0.0:8080` 서버 시작을 확인했다. 외부 도메인과 재배포 후 DB 보존은 아직 미검증이다.
-- **공개 HTTPS 확인:** `https://roadio-production.up.railway.app`을 포트 8080으로 생성하고 외부 `/v1/health`에서 `roadio / railway-demo` JSON 응답을 확인했다. Railway Healthcheck Path 입력, NAVER Maps 허용 URL, 앱 서버 주소 전환과 기기 간 통합은 남아 있다.
-- **Healthcheck 적용:** Railway의 배포 Healthcheck Path를 `/v1/health`로 지정해 재배포했고 새 배포가 ACTIVE가 됐다. 테스트 데이터의 재배포 후 보존은 아직 별도 검증 전이다.
-- **NAVER·공개 웹:** NAVER Maps Web 서비스 허용 URL에 Railway 도메인을 저장했다. 공개 루트에서 Roadio 홈이 HTTPS로 렌더링되고 초기 console 오류가 없음을 확인했지만 지도·위치 권한과 iPhone Safari는 미검증이다.
+- **볼륨 후속 상태:** `function-bun` 삭제 후 캔버스에는 온라인 Roadio와 `roadio-volume`만 남고 적용 대기 표시가 사라졌다. 이 단계에서는 볼륨 연결을 확인했다.
+- **비밀 변수 재배포:** 작성자·차량용 64자 난수 토큰 두 개를 Railway에 마스킹 변수로 등록해 배포했다. 배포 `1e78420a`가 ACTIVE가 됐고 로그에서 볼륨 마운트, `bootstrapUsersReady: true`, 토큰 원문 없는 두 사용자 ID, `0.0.0.0:8080` 서버 시작을 확인했다. 공개 HTTPS와 데이터 보존은 후속 단계에서 확인했다.
+- **공개 HTTPS 확인:** `https://roadio-production.up.railway.app`을 포트 8080으로 생성하고 외부 `/v1/health`에서 `roadio / railway-demo` JSON 응답을 확인했다. 이후 Healthcheck와 NAVER Maps 허용 URL을 설정하고 기기 간 통합을 확인했다.
+- **Healthcheck 적용:** Railway의 배포 Healthcheck Path를 `/v1/health`로 지정해 재배포했고 새 배포가 ACTIVE가 됐다. 데이터 보존은 아래 최종 통합 과업에서 별도로 확인했다.
+- **NAVER·공개 웹:** NAVER Maps Web 서비스 허용 URL에 Railway 도메인을 저장했다. 공개 루트에서 Roadio 홈이 HTTPS로 렌더링되고 초기 console 오류가 없음을 확인했다. 지도 타일·위치 권한·주소 변환은 별도 검증 범위다.
+- **최종 통합:** Railway HTTPS 웹앱에서 iPhone으로 실제 녹음을 등록하고, 재인증 및 컨테이너 재배포 뒤에도 목록과 녹음 음성이 유지됨을 확인했다. Pleos AVD는 직접 입력 가상 위치에서 `SELF`일 때 0개를 반환했고, iPhone에서 `내 이웃(SELECTED)`으로 바꾼 뒤 같은 캡슐을 찾았다. `선택 재생` 후 iPhone 녹음이 들렸다고 사용자가 확인했다. 삭제 검증용 캡슐을 등록한 뒤 차량 검색 결과가 2개로 늘었고, iPhone에서 해당 항목을 삭제하고 다시 검색하자 기존 1개만 남았다.
+- **남은 검증:** 만료·비허용 계정은 서버 자동 테스트 근거가 있다. 배포 환경 수동 검증, 네트워크 실패 복구, Pleos SDK 실제 위치, 실차 오디오와 주행 중 조작 제한은 별도 확인이 필요하다. 제출 자료에는 시연용 계정·가상 위치와 사용자 청취 확인 범위를 명시한다.

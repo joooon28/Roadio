@@ -1,7 +1,7 @@
 # DEV-13 모바일→서버→차량 통합 시연·제출 준비
 
 - 날짜: 2026-11-09
-- 상태: **Railway Docker 배포 성공, 영속 볼륨·비밀값·HTTPS 설정 대기**
+- 상태: **핵심 통합 검증 완료. iPhone 등록→Railway HTTPS→Pleos AVD 검색·선택 재생 확인**
 
 ## 작업 목표·근거
 
@@ -16,16 +16,18 @@ Vercel 정적 웹앱과 Mac 로컬 서버를 분리한 상태에서는 iPhone에
 - [x] 서버 자동 테스트·문법·공개 바인딩·계정 인증 로컬 검증
 - [x] 배포 설정을 GitHub `main`에 푸시하고 Railway 이미지 빌드 성공 확인
 - [x] Railway `/data` 영속 볼륨 연결 상태 확인
-- [ ] 재배포 후 SQLite·음성 데이터 보존 확인
+- [x] 재배포 후 SQLite·음성 데이터 보존 확인
 - [x] Railway 비밀 환경변수 적용과 공개 `/v1/health` 응답 확인
 - [x] Railway Healthcheck Path `/v1/health` 설정·배포
 - [x] Railway 공개 HTTPS 도메인 생성
 - [x] NAVER Maps 허용 URL 등록
-- [ ] iPhone HTTPS 웹앱 등록→Pleos AVD 검색→선택 재생 확인
-- [ ] 삭제·만료·비허용 계정과 네트워크 실패 복구 확인
+- [x] iPhone HTTPS 웹앱 등록→Pleos AVD 검색→선택 재생 확인
+- [x] `SELF` 검색 제외, `SELECTED` 전환 후 노출, 삭제 후 검색 제외 확인
+- [x] 만료·비허용 계정의 검색·음성 접근 제한을 서버 자동 테스트로 확인
+- [ ] 배포 환경에서 만료·비허용 계정과 네트워크 실패 복구 수동 검증
 - [ ] 실제 결과·화면·로그·출처·비용과 한계를 제출 자료에 연결
 
-**완료 기준:** iPhone HTTPS 웹앱에서 새로 녹음·등록한 캡슐이 같은 Railway 데이터 저장소를 통해 Pleos AVD에 나타나며, 사용자가 선택한 뒤 재생된다. 삭제·만료·접근 제한이 서버에서 반영되고 실제 차량·주행 중 동작 등 미검증 항목은 분리한다.
+**핵심 통합 완료 기준:** iPhone HTTPS 웹앱에서 새로 녹음·등록한 캡슐이 같은 Railway 데이터 저장소를 통해 Pleos AVD에 나타나며, 사용자가 선택한 뒤 재생된다. 같은 통합 흐름에서 공개 범위 변경과 삭제의 반영을 확인한다. 만료·비허용 계정은 자동 테스트와 배포 환경 수동 검증을 구분한다.
 
 ## 2026-11-09 첫 Railway 빌드 실패
 
@@ -55,8 +57,8 @@ Vercel 정적 웹앱과 Mac 로컬 서버를 분리한 상태에서는 iPhone에
 
 - **커밋·푸시:** 배포 코드·테스트·DEV 문서·증거만 선별해 `5d1bc33 Prepare Railway HTTPS deployment`로 커밋하고 GitHub `main`에 푸시했다. 기존 `.idea`와 별도 디자인 문서는 커밋하지 않았다.
 - **이미지 빌드:** Railway가 새 커밋을 자동 감지했다. Build Logs에서 `load build definition from Dockerfile`, `python:3.12-slim`, `COPY server`, `COPY web`을 확인해 Gradle·Java 자동 감지가 제거됐음을 검증했다. `.dockerignore` 적용 뒤 업로드된 스냅샷은 약 4.8MB였고 이미지 푸시는 약 42.5MB였다.
-- **배포:** Railway 화면이 `Online`, 배포가 `ACTIVE / Deployment successful`로 전환됐다. Deploy Logs에서 컨테이너 시작과 `Roadio API at http://0.0.0.0:8080 (railway-demo)`를 확인했다. 현재 서비스는 아직 `Unexposed service`이며 공개 HTTPS 주소는 없다.
-- **판단:** Docker 이미지와 Railway 런타임 시작은 완료로 판단한다. `/data` 볼륨과 부트스트랩 비밀값을 아직 설정하지 않았으므로 현재 컨테이너 파일과 계정은 재배포 후 보존되지 않으며 모바일·차량 인증에 사용할 준비가 끝난 것은 아니다.
+- **배포:** Railway 화면이 `Online`, 배포가 `ACTIVE / Deployment successful`로 전환됐다. Deploy Logs에서 컨테이너 시작과 `Roadio API at http://0.0.0.0:8080 (railway-demo)`를 확인했다. 이 배포 시점의 서비스는 `Unexposed service` 상태였다.
+- **판단:** 이 단계에서 Docker 이미지 빌드와 런타임 시작을 확인했다. `/data` 볼륨과 부트스트랩 비밀값은 후속 배포에서 적용했다.
 
 ## Railway 볼륨 설정과 불필요 서비스 확인
 
@@ -87,8 +89,25 @@ Vercel 정적 웹앱과 Mac 로컬 서버를 분리한 상태에서는 iPhone에
 
 - **사용자 설정:** NAVER Cloud Platform의 Roadio Maps Application Web 서비스 URL에 `https://roadio-production.up.railway.app`을 등록하고 저장했다.
 - **공개 화면:** 별도 브라우저에서 Railway 루트 주소를 열어 Roadio 제목과 `이야기 녹음` 홈 화면이 HTTPS로 렌더링됨을 확인했다. 초기 로드의 브라우저 console warning/error는 관찰되지 않았다.
-- **판단 경계:** 홈 화면은 지도를 아직 초기화하지 않는다. 위치 권한 승인, NAVER 지도 타일·Geocoding·Reverse Geocoding, iPhone Safari는 별도로 검증해야 하므로 Maps 연동 성공으로 확대하지 않는다.
+- **판단 경계:** 홈 화면은 지도를 아직 초기화하지 않는다. 이 화면에서 확인한 범위는 홈 렌더링이다. 위치 권한 승인, NAVER 지도 타일, Geocoding·Reverse Geocoding은 별도 검증 범위다.
 - **실기기에서 발견한 문구 문제:** iPhone에서 게시를 시도했을 때 인증 prompt가 `로컬 개발 서버의 Bearer 토큰`을 요구해 현재 Railway 환경과 사용자 용어에 맞지 않았다. 동작상 필요한 값은 작성자용 시연 토큰이므로 `Roadio 시연 계정 연결 코드`로 바꾸고 JavaScript 캐시 버전을 갱신했다. 인증 자체를 제거하거나 비밀값을 웹 코드에 넣지 않는다.
+
+## 최종 통합 검증 (2026-11-09)
+
+공모전 프로젝트의 보조 기록 `Roadio_DEV-13-final-validation-2026-11-09.md`에 남긴 실행 결과다. iPhone Roadio 웹앱의 Railway 작성자 시연 계정과 Pleos AVD 차량 앱의 Railway 차량 시연 계정을 같은 공개 HTTPS 서버 및 `/data` 볼륨에 연결했다. AVD에는 최신 캡슐과 일치하는 직접 입력 가상 위치를 사용했다.
+
+| 검증 항목 | 관찰 결과 |
+| --- | --- |
+| iPhone 등록·조회 | iPhone에서 녹음 후 `서버에 등록되었어요`를 확인했다. 작성자 연결 코드를 다시 입력하자 `내 이야기`에 새 항목이 나타났다. |
+| 재배포 후 영속성 | Railway 컨테이너를 재배포하고 다시 인증한 뒤 같은 항목이 남았다. 재배포 뒤 iPhone에서 원래 녹음이 재생된다는 사용자 확인을 받아 SQLite 데이터와 업로드 음성의 보존을 확인했다. |
+| 공개 범위 변경 | `나에게만 들려주기(SELF)`일 때 차량 검색 결과는 0개였다. iPhone에서 `내 이웃(SELECTED)`으로 바꾸자 같은 가상 위치에서 해당 캡슐이 나타났다. 작성자→차량 시연 계정의 수신자 관계가 서버 판정에 반영됐다. |
+| 선택 재생 | Pleos AVD 상세에서 사용자가 `선택 재생`을 눌렀고, iPhone에서 녹음한 음성이 들렸다고 확인했다. 청취 근거는 사용자 보고다. |
+| 삭제 반영 | 같은 위치와 `내 이웃` 범위에 삭제 검증용 캡슐을 추가하자 차량 검색 결과가 2개가 됐다. iPhone에서 해당 항목만 삭제한 뒤 AVD에서 다시 검색하자 기존 1개만 남았다. |
+
+- **대안과 선택:** `모두에게(PUBLIC)`로 검색만 확인하는 방법도 있었지만, 수신자 관계까지 검증하기 위해 `내 이웃(SELECTED)`을 사용했다.
+- **검증 환경의 제약:** 자동화 환경의 ADB 소켓과 직접 외부 API 요청 제한으로 사용자 실행 AVD와 Railway Console의 읽기 전용 DB 확인을 조합했다. 차량 연결 코드는 가상 키패드 대신 Android Studio Terminal의 ADB 텍스트 입력으로 전달했다. 토큰 원문과 가상 좌표는 기록에서 제외했다.
+- **자동 테스트 근거:** [서버 테스트](server/test_app.py)의 `test_visibility_radius_expiry_delete_and_range`는 만료 또는 수신자 미지정 시 해당 캡슐의 검색 제외와 음성 접근 HTTP 404를 확인한다. 배포 환경의 iPhone→Pleos AVD 흐름에서 만료, 별도 비허용 계정, 네트워크 전환·장애 복구는 수동 미검증이다.
+- **실차 검증 범위:** 직접 입력 가상 위치를 사용했으므로 Pleos 위치 SDK와 실차 GPS는 미검증이다. 실차 오디오, Pleos 시스템 미디어 표면, 주행 중 조작 제한도 후속 검증 범위다.
 
 ## 포트폴리오 관점의 결정·증거
 
@@ -96,10 +115,10 @@ Vercel 정적 웹앱과 Mac 로컬 서버를 분리한 상태에서는 iPhone에
 - **고려한 대안:** Railway의 자동 감지를 유지하며 빌드 설정만 덮는 방식보다 Dockerfile로 포함 파일과 런타임을 명확히 했다. Supabase·오브젝트 스토리지 분리는 장기 운영 대안이지만 이번 통합 시연에는 변경 범위가 크다.
 - **선택 이유·절충:** SQLite와 음성을 단일 볼륨에 유지해 기존 서버 계약을 보존한다. 단일 인스턴스·볼륨 의존 구조는 확장성과 장애 복구에 한계가 있으며 장기 사업 구조로 제시하지 않는다.
 - **사용자 검증 방법:** iPhone 작성자가 녹음·위치·공개 대상을 확인해 등록하고, 차량 사용자가 같은 장소에서 목록을 찾아 출처를 이해한 뒤 명시적으로 재생하는 과업을 관찰한다. 성공률·만족도는 관찰 전이며 만들지 않는다.
-- **현재 결과와 한계:** 코드·로컬 서버 검증만 완료했다. Railway 이미지 빌드, 볼륨, HTTPS, iPhone·Pleos 통합은 아직 결과가 없다.
+- **실제 결과와 한계:** 공용 HTTPS에서 같은 녹음의 등록·검색·선택 재생과 삭제 반영을 확인했다. 시연 계정은 실제 로그인·초대·동의 UX 검증 범위와 분리한다.
 
-## 다음 작업
+## 남은 작업
 
-1. 서비스에 `/data` 볼륨, 두 비밀 토큰, Healthcheck Path `/v1/health`를 설정한다.
-2. 공개 HTTPS 도메인을 만든 뒤 health 응답과 재시작 후 DB 보존을 확인한다.
-3. NAVER Maps 웹 서비스 URL을 추가하고 iPhone→Pleos 통합 과업을 실행한다.
+1. 배포 환경에서 만료·비허용 계정과 네트워크 전환·장애 후 재시도를 확인한다.
+2. 공식 권한·정책을 확인한 뒤 Pleos SDK 위치, 실차 오디오와 주행 중 동작을 별도 검증한다.
+3. 공모전 제출 자료에 검증 범위와 실제 결과, 화면·로그·출처·비용 근거를 연결한다.
