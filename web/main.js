@@ -41,7 +41,7 @@ const serverCheck = fetch('./v1/health', { cache: 'no-store' })
   .then(async response => response.ok && (await response.json()).service === 'roadio')
   .catch(() => false);
 async function apiRequest(path, options = {}) {
-  if (!apiToken) apiToken = window.prompt('로컬 개발 서버의 Bearer 토큰을 입력해 주세요.')?.trim() || '';
+  if (!apiToken) apiToken = window.prompt('Roadio 시연 계정 연결 코드를 입력해 주세요.')?.trim() || '';
   if (!apiToken) throw new Error('서버 계정 연결이 필요해요.');
   const response = await fetch(path, {
     ...options, cache: 'no-store',
@@ -49,7 +49,7 @@ async function apiRequest(path, options = {}) {
   });
   if (response.status === 401) {
     apiToken = '';
-    throw new Error('토큰이 유효하지 않아요. 서버 계정을 다시 확인해 주세요.');
+    throw new Error('연결 코드가 유효하지 않아요. 시연 계정을 다시 확인해 주세요.');
   }
   if (!response.ok) {
     const detail = await response.json().catch(() => ({}));

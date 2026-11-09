@@ -395,3 +395,9 @@ Figma Title input의 Default→Typing→Complete 흐름을 보완했다. 기본 
 - **결과:** Dockerfile이 Python 서버와 웹만 포함하고 Railway 공개 포트·영속 경로를 사용하도록 했다. 환경변수 토큰으로 안정적인 작성자·차량 계정과 수신자 관계를 중복 없이 만들며 원문 토큰은 저장·로그하지 않는다. 서버 테스트 6개와 공개 바인딩·인증을 로컬에서 확인했다. 커밋 `5d1bc33` 푸시 뒤 Railway Build Logs에서 Python 3.12 Dockerfile과 `server`·`web` 복사를 확인했고 서비스가 `ACTIVE`가 됐다. Deploy Logs의 서버 주소는 `0.0.0.0:8080`, 모드는 `railway-demo`였다.
 - **한계:** 서비스는 아직 `Unexposed`이며 `/data` 볼륨과 시연 토큰도 설정하지 않았다. 공개 URL이나 원격 데이터 보존·iPhone→Pleos 증거는 없다.
 - **문서:** [DEV-13 검증 기록](DEV-13-validation.md).
+- **볼륨 설정 정정:** Railway 화면에서 `/data`·5GB 볼륨은 생성했지만 `Apply 5 changes`가 남아 있어 아직 적용 전이다. Hobby 볼륨의 5GB는 기본/최대 용량이며 축소는 지원하지 않고 실제 저장량 기준으로 과금된다. 함께 생긴 `function-bun`은 Bun 기반 별도 Function 서비스로 Roadio Python API에는 필요하지 않아 적용 전에 제거한다.
+- **볼륨 후속 상태:** `function-bun` 삭제 후 캔버스에는 온라인 Roadio와 `roadio-volume`만 남고 적용 대기 표시가 사라졌다. 연결은 확인했지만 데이터 생성→재배포 뒤 보존은 아직 검증하지 않았다.
+- **비밀 변수 재배포:** 작성자·차량용 64자 난수 토큰 두 개를 Railway에 마스킹 변수로 등록해 배포했다. 배포 `1e78420a`가 ACTIVE가 됐고 로그에서 볼륨 마운트, `bootstrapUsersReady: true`, 토큰 원문 없는 두 사용자 ID, `0.0.0.0:8080` 서버 시작을 확인했다. 외부 도메인과 재배포 후 DB 보존은 아직 미검증이다.
+- **공개 HTTPS 확인:** `https://roadio-production.up.railway.app`을 포트 8080으로 생성하고 외부 `/v1/health`에서 `roadio / railway-demo` JSON 응답을 확인했다. Railway Healthcheck Path 입력, NAVER Maps 허용 URL, 앱 서버 주소 전환과 기기 간 통합은 남아 있다.
+- **Healthcheck 적용:** Railway의 배포 Healthcheck Path를 `/v1/health`로 지정해 재배포했고 새 배포가 ACTIVE가 됐다. 테스트 데이터의 재배포 후 보존은 아직 별도 검증 전이다.
+- **NAVER·공개 웹:** NAVER Maps Web 서비스 허용 URL에 Railway 도메인을 저장했다. 공개 루트에서 Roadio 홈이 HTTPS로 렌더링되고 초기 console 오류가 없음을 확인했지만 지도·위치 권한과 iPhone Safari는 미검증이다.
