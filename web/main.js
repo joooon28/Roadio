@@ -86,12 +86,19 @@ function show(screen) {
   document.querySelector('.quick-menu').hidden = screen !== home;
   if (screen !== locationScreen) setLocationToast('');
 }
-function setLocationToast(text) {
+function setLocationToast(text, duration = 2000) {
   clearTimeout(locationToastTimer);
   locationToastTimer = null;
   locationToast.textContent = text;
   locationToast.hidden = !text;
-  if (text) locationToastTimer = setTimeout(() => setLocationToast(''), 2000);
+  if (text) locationToastTimer = setTimeout(() => setLocationToast(''), duration);
+}
+function locationErrorMessage(error) {
+  if (!window.isSecureContext) return '현재 위치는 HTTPS에서 사용할 수 있어요.';
+  if (!navigator.geolocation) return '이 브라우저에서 현재 위치를 사용할 수 없어요.';
+  if (error?.code === 1) return '위치 접근이 차단됐어요. iPhone 설정에서 Safari의 위치 권한을 허용해 주세요.';
+  if (error?.code === 3) return '위치 확인 시간이 초과됐어요. 위치 서비스를 켜고 다시 눌러 주세요.';
+  return '현재 위치를 확인할 수 없어요. 위치 서비스를 확인하거나 지도에서 직접 선택해 주세요.';
 }
 function setSearchStatus(text) {
   locationSearchStatus.textContent = text;
@@ -159,9 +166,11 @@ async function openLocationScreen() {
         naverMap.setCenter(center);
         setSelectedLocation(center);
         setLocationToast('현재 위치로 이동했어요.');
-      }, () => {
-        if (!locationScreen.hidden && !locationInteracted) setLocationToast('현재 위치를 불러오지 못해 기본 지도를 보여드려요.');
-      }, { enableHighAccuracy: false, maximumAge: 60000, timeout: 7000 });
+      }, error => {
+        if (!locationScreen.hidden && !locationInteracted) setLocationToast(locationErrorMessage(error), 6000);
+      }, { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 });
+    } else {
+      setLocationToast(locationErrorMessage(), 6000);
     }
   } catch (error) {
     fallback.hidden = false;
@@ -212,7 +221,7 @@ function renderAddressResults(addresses, query) {
   });
   locationResults.hidden = !locationResults.childElementCount;
   locationQuery.setAttribute('aria-expanded', String(!locationResults.hidden));
-  setSearchStatus(locationResults.hidden ? '검색 결과가 없어요.' : '');
+  setSearchStatus(locationResults.hidden ? '주소를 찾지 못했어요. 시·군·구를 포함한 도로명 또는 지번 주소를 입력하거나 지도를 움직여 선택해 주세요. 장소명 검색은 지원되지 않아요.' : '');
   locationSearch.classList.toggle('has-results', !locationResults.hidden);
 }
 function searchAddress(query) {
@@ -249,7 +258,7 @@ document.getElementById('location-current').addEventListener('click', () => {
     naverMap.setCenter(center);
     setSelectedLocation(center);
     setLocationToast('현재 위치로 이동했어요.');
-  }, () => setLocationToast('위치 권한을 확인해 주세요.'), { enableHighAccuracy: true, timeout: 10000 });
+  }, error => setLocationToast(locationErrorMessage(error), 6000), { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 });
 });
 locationConfirm.addEventListener('click', () => {
   if (!selectedLocation) return;
