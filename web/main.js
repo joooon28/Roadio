@@ -36,20 +36,43 @@ let discardRecording = false;
 let lastRecordingDurationMs = 0;
 let pendingUploadKey = null;
 let pendingUploadFingerprint = null;
-let apiToken = '';
+let webConnection = null;
+const webSessionHeaders = { 'X-Roadio-Web': '1' };
 const serverCheck = fetch('./v1/health', { cache: 'no-store' })
   .then(async response => response.ok && (await response.json()).service === 'roadio')
   .catch(() => false);
+
+async function connectWebSession() {
+  const sessionPath = '/v1/web-session';
+  const options = { cache: 'no-store', headers: webSessionHeaders };
+  const existing = await fetch(sessionPath, options);
+  if (existing.ok) return;
+  if (existing.status !== 401) throw new Error(`서버 연결을 확인할 수 없어요. (${existing.status})`);
+
+  const code = window.prompt('Roadio 시연 계정 연결 코드를 입력해 주세요.')?.trim();
+  if (!code) throw new Error('서버 계정 연결이 필요해요.');
+  const response = await fetch(sessionPath, {
+    ...options, method: 'POST',
+    headers: { ...webSessionHeaders, Authorization: `Bearer ${code}` }
+  });
+  if (response.status === 401) throw new Error('연결 코드가 유효하지 않아요. 시연 계정을 다시 확인해 주세요.');
+  if (!response.ok) throw new Error(`서버 계정에 연결할 수 없어요. (${response.status})`);
+}
+
 async function apiRequest(path, options = {}) {
-  if (!apiToken) apiToken = window.prompt('Roadio 시연 계정 연결 코드를 입력해 주세요.')?.trim() || '';
-  if (!apiToken) throw new Error('서버 계정 연결이 필요해요.');
+  webConnection ??= connectWebSession().catch(error => {
+    webConnection = null;
+    throw error;
+  });
+  const connection = webConnection;
+  await connection;
   const response = await fetch(path, {
     ...options, cache: 'no-store',
-    headers: { ...options.headers, Authorization: `Bearer ${apiToken}` }
+    headers: { ...options.headers, ...webSessionHeaders }
   });
   if (response.status === 401) {
-    apiToken = '';
-    throw new Error('연결 코드가 유효하지 않아요. 시연 계정을 다시 확인해 주세요.');
+    if (webConnection === connection) webConnection = null;
+    throw new Error('서버 계정 연결을 다시 확인해 주세요. 다시 시도하면 연결 코드를 입력할 수 있어요.');
   }
   if (!response.ok) {
     const detail = await response.json().catch(() => ({}));

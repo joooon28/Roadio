@@ -7,6 +7,7 @@ import unittest
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 from uuid import uuid4
+from http.cookies import SimpleCookie
 from http.server import ThreadingHTTPServer
 
 from app import Api, bootstrap_demo_users, connect, parse_stamp, stamp, token_user, utcnow
@@ -53,7 +54,7 @@ class ApiTests(unittest.TestCase):
             finally:
                 error.close()
 
-    def create(self, visibility='PUBLIC', recipients=None, user='owner', key=None):
+    def create(self, visibility='PUBLIC', recipients=None, user='owner', key=None, headers=None):
         metadata = {'title': '안녕', 'position': {'latitude': 37.5665, 'longitude': 126.978},
                     'visibility': visibility, 'contentOrigin': 'MOBILE_RECORDING', 'durationMs': 1200}
         if recipients is not None:
@@ -65,7 +66,7 @@ class ApiTests(unittest.TestCase):
                 + 'Content-Type: audio/wav\r\n\r\n').encode() + audio + f'\r\n--{boundary}--\r\n'.encode()
         status, _, payload = self.request('POST', '/v1/capsules', user, body,
                                           f'multipart/form-data; boundary={boundary}',
-                                          {'Idempotency-Key': key or str(uuid4())})
+                                          {**(headers or {}), 'Idempotency-Key': key or str(uuid4())})
         return status, json.loads(payload)
 
     def search(self, user='stranger', lat=37.5665, source='PLEOS_EMULATOR'):
@@ -80,6 +81,40 @@ class ApiTests(unittest.TestCase):
                     status, headers, _ = self.request(method, path, user=None)
                     self.assertEqual(status, 200)
                     self.assertEqual(headers['Cache-Control'], 'no-cache')
+
+    def test_web_session_reuses_account_for_registration_and_archive(self):
+        session_path = '/v1/web-session'
+        web_headers = {'X-Roadio-Web': '1'}
+        self.assertEqual(self.request('GET', session_path, user=None, headers=web_headers)[0], 401)
+        self.assertEqual(self.request('POST', session_path, user=None, headers=web_headers)[0], 401)
+        self.assertEqual(self.request('POST', session_path)[0], 403)
+
+        status, headers, payload = self.request('POST', session_path, headers=web_headers)
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(payload), {'connected': True})
+        cookie = SimpleCookie(headers['Set-Cookie'])['roadio_web_session']
+        self.assertNotEqual(cookie.value, self.people['owner'][1])
+        self.assertEqual(cookie['max-age'], str(7 * 24 * 60 * 60))
+        self.assertEqual(cookie['path'], '/v1/')
+        self.assertEqual(cookie['samesite'], 'Strict')
+        self.assertTrue(cookie['httponly'])
+
+        cookie_header = {'Cookie': f'{cookie.key}={cookie.value}'}
+        session_headers = {**web_headers, **cookie_header}
+        self.assertEqual(self.request('GET', session_path, user=None, headers=session_headers)[0], 200)
+        self.assertEqual(self.request('POST', session_path, user=None, headers=session_headers)[0], 401)
+        self.assertEqual(self.request('GET', '/v1/capsules', user=None, headers=cookie_header)[0], 401)
+        invalid_bearer = {**session_headers, 'Authorization': 'Bearer invalid'}
+        self.assertEqual(self.request('GET', '/v1/capsules', user=None, headers=invalid_bearer)[0], 401)
+        status, created = self.create(user=None, headers=session_headers)
+        self.assertEqual(status, 201)
+        status, _, archive = self.request('GET', '/v1/capsules', user=None, headers=session_headers)
+        self.assertEqual(status, 200)
+        self.assertEqual([item['id'] for item in json.loads(archive)], [created['id']])
+
+        with self.db:
+            self.db.execute('UPDATE web_sessions SET expires_at=?', (stamp(utcnow() - timedelta(seconds=1)),))
+        self.assertEqual(self.request('GET', session_path, user=None, headers=session_headers)[0], 401)
 
     def test_visibility_radius_expiry_delete_and_range(self):
         self.assertEqual(self.create('SELF')[0], 201)

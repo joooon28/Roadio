@@ -11,6 +11,7 @@ import sqlite3
 from datetime import datetime, timedelta, timezone
 from email.parser import BytesParser
 from email.policy import default
+from http.cookies import CookieError, SimpleCookie
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlsplit
 from uuid import NAMESPACE_URL, UUID, uuid4, uuid5
@@ -21,6 +22,8 @@ MIMES = {'audio/webm', 'audio/mp4', 'audio/mpeg', 'audio/wav', 'audio/x-wav', 'a
 RADIUS = 100
 LIFETIME = timedelta(hours=72)
 TOKEN_PATTERN = re.compile(r'[A-Za-z0-9_-]{32,128}')
+WEB_SESSION_COOKIE = 'roadio_web_session'
+WEB_SESSION_LIFETIME = timedelta(days=7)
 
 
 def utcnow():
@@ -45,6 +48,12 @@ def connect(data_dir):
         CREATE TABLE IF NOT EXISTS users (
             id TEXT PRIMARY KEY, display_name TEXT NOT NULL,
             token_hash TEXT NOT NULL UNIQUE
+        );
+        CREATE TABLE IF NOT EXISTS web_sessions (
+            session_hash TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            user_token_hash TEXT NOT NULL,
+            expires_at TEXT NOT NULL
         );
         CREATE TABLE IF NOT EXISTS recipients (
             owner_id TEXT NOT NULL REFERENCES users(id),
@@ -196,13 +205,15 @@ class Api(SimpleHTTPRequestHandler):
             self.send_header('Cache-Control', 'no-cache')
         super().end_headers()
 
-    def send_json(self, code, body):
+    def send_json(self, code, body, *, cookie=None):
         data = json.dumps(body, ensure_ascii=False).encode()
         self.send_response(code)
         self.send_header('Content-Type', 'application/json; charset=utf-8')
         self.send_header('Content-Length', str(len(data)))
         self.send_header('Cache-Control', 'no-store')
         self.send_header('X-Content-Type-Options', 'nosniff')
+        if cookie is not None:
+            self.send_header('Set-Cookie', cookie)
         self.end_headers()
         self.wfile.write(data)
 
@@ -218,14 +229,49 @@ class Api(SimpleHTTPRequestHandler):
             raise OverflowError('request too large')
         return self.rfile.read(length)
 
-    def user_and_db(self):
+    def web_session_user(self, db):
+        if self.headers.get('X-Roadio-Web') != '1':
+            return None
+        try:
+            cookie = SimpleCookie(self.headers.get('Cookie', '')).get(WEB_SESSION_COOKIE)
+        except CookieError:
+            return None
+        if cookie is None or not TOKEN_PATTERN.fullmatch(cookie.value):
+            return None
+        return db.execute('''SELECT u.* FROM web_sessions s JOIN users u ON u.id=s.user_id
+                             WHERE s.session_hash=? AND s.expires_at>? AND s.user_token_hash=u.token_hash''',
+                          (hashlib.sha256(cookie.value.encode()).hexdigest(), stamp(utcnow()))).fetchone()
+
+    def user_and_db(self, *, bearer_only=False):
         db = connect(self.server.data_dir)
-        user = token_user(db, self.headers.get('Authorization', ''))
+        authorization = self.headers.get('Authorization')
+        if authorization is not None or bearer_only:
+            user = token_user(db, authorization or '')
+        else:
+            user = self.web_session_user(db)
         if user is None:
             db.close()
             self.error_json(401, 'authentication required')
             return None, None
         return db, user
+
+    def start_web_session(self, db, user):
+        session = secrets.token_urlsafe(32)
+        now = utcnow()
+        with db:
+            db.execute('DELETE FROM web_sessions WHERE expires_at<=?', (stamp(now),))
+            db.execute('INSERT INTO web_sessions VALUES (?,?,?,?)',
+                       (hashlib.sha256(session.encode()).hexdigest(), user['id'], user['token_hash'],
+                        stamp(now + WEB_SESSION_LIFETIME)))
+        cookie = SimpleCookie()
+        cookie[WEB_SESSION_COOKIE] = session
+        cookie[WEB_SESSION_COOKIE]['path'] = '/v1/'
+        cookie[WEB_SESSION_COOKIE]['max-age'] = int(WEB_SESSION_LIFETIME.total_seconds())
+        cookie[WEB_SESSION_COOKIE]['httponly'] = True
+        cookie[WEB_SESSION_COOKIE]['samesite'] = 'Strict'
+        # The local development server listens over HTTP on loopback.
+        cookie[WEB_SESSION_COOKIE]['secure'] = self.server.server_address[0] != '127.0.0.1'
+        self.send_json(200, {'connected': True}, cookie=cookie[WEB_SESSION_COOKIE].OutputString())
 
     def do_GET(self):
         path = urlsplit(self.path).path
@@ -238,7 +284,9 @@ class Api(SimpleHTTPRequestHandler):
         if db is None:
             return
         try:
-            if path == '/v1/capsules':
+            if path == '/v1/web-session':
+                self.send_json(200, {'connected': True})
+            elif path == '/v1/capsules':
                 rows = db.execute('SELECT * FROM capsules WHERE owner_id=? ORDER BY created_at DESC', (user['id'],)).fetchall()
                 self.send_json(200, [owner_json(row, utcnow()) for row in rows])
             elif path == '/v1/me/recipients':
@@ -291,12 +339,17 @@ class Api(SimpleHTTPRequestHandler):
             db.close()
 
     def do_POST(self):
-        db, user = self.user_and_db()
+        path = urlsplit(self.path).path
+        if path == '/v1/web-session' and self.headers.get('X-Roadio-Web') != '1':
+            self.error_json(403, 'web session header required')
+            return
+        db, user = self.user_and_db(bearer_only=path == '/v1/web-session')
         if db is None:
             return
         try:
-            path = urlsplit(self.path).path
-            if path == '/v1/capsules':
+            if path == '/v1/web-session':
+                self.start_web_session(db, user)
+            elif path == '/v1/capsules':
                 request_key = self.headers.get('Idempotency-Key', '')
                 if not re.fullmatch(r'[A-Za-z0-9_-]{16,100}', request_key):
                     raise ValueError('Idempotency-Key required')
