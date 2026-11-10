@@ -23,7 +23,8 @@ RADIUS = 100
 LIFETIME = timedelta(hours=72)
 TOKEN_PATTERN = re.compile(r'[A-Za-z0-9_-]{32,128}')
 WEB_SESSION_COOKIE = 'roadio_web_session'
-WEB_SESSION_LIFETIME = timedelta(days=7)
+WEB_SESSION_LIFETIME = timedelta(days=180)
+WEB_SESSION_RENEWAL_WINDOW = timedelta(days=7)
 
 
 def utcnow():
@@ -238,7 +239,8 @@ class Api(SimpleHTTPRequestHandler):
             return None
         if cookie is None or not TOKEN_PATTERN.fullmatch(cookie.value):
             return None
-        return db.execute('''SELECT u.* FROM web_sessions s JOIN users u ON u.id=s.user_id
+        return db.execute('''SELECT u.*, s.expires_at AS web_session_expires_at
+                             FROM web_sessions s JOIN users u ON u.id=s.user_id
                              WHERE s.session_hash=? AND s.expires_at>? AND s.user_token_hash=u.token_hash''',
                           (hashlib.sha256(cookie.value.encode()).hexdigest(), stamp(utcnow()))).fetchone()
 
@@ -285,7 +287,11 @@ class Api(SimpleHTTPRequestHandler):
             return
         try:
             if path == '/v1/web-session':
-                self.send_json(200, {'connected': True})
+                if (self.headers.get('Authorization') is None
+                        and parse_stamp(user['web_session_expires_at']) <= utcnow() + WEB_SESSION_RENEWAL_WINDOW):
+                    self.start_web_session(db, user)
+                else:
+                    self.send_json(200, {'connected': True})
             elif path == '/v1/capsules':
                 rows = db.execute('SELECT * FROM capsules WHERE owner_id=? ORDER BY created_at DESC', (user['id'],)).fetchall()
                 self.send_json(200, [owner_json(row, utcnow()) for row in rows])

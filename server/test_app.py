@@ -94,14 +94,19 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(json.loads(payload), {'connected': True})
         cookie = SimpleCookie(headers['Set-Cookie'])['roadio_web_session']
         self.assertNotEqual(cookie.value, self.people['owner'][1])
-        self.assertEqual(cookie['max-age'], str(7 * 24 * 60 * 60))
+        self.assertEqual(cookie['max-age'], str(180 * 24 * 60 * 60))
         self.assertEqual(cookie['path'], '/v1/')
         self.assertEqual(cookie['samesite'], 'Strict')
         self.assertTrue(cookie['httponly'])
 
         cookie_header = {'Cookie': f'{cookie.key}={cookie.value}'}
         session_headers = {**web_headers, **cookie_header}
-        self.assertEqual(self.request('GET', session_path, user=None, headers=session_headers)[0], 200)
+        status, headers, _ = self.request('GET', session_path, user=None, headers=session_headers)
+        self.assertEqual(status, 200)
+        self.assertIsNone(headers['Set-Cookie'])
+        session_hash = hashlib.sha256(cookie.value.encode()).hexdigest()
+        expiry = self.db.execute('SELECT expires_at FROM web_sessions WHERE session_hash=?', (session_hash,)).fetchone()[0]
+        self.assertEqual((parse_stamp(expiry) - utcnow()).days, 179)
         self.assertEqual(self.request('POST', session_path, user=None, headers=session_headers)[0], 401)
         self.assertEqual(self.request('GET', '/v1/capsules', user=None, headers=cookie_header)[0], 401)
         invalid_bearer = {**session_headers, 'Authorization': 'Bearer invalid'}
@@ -111,6 +116,17 @@ class ApiTests(unittest.TestCase):
         status, _, archive = self.request('GET', '/v1/capsules', user=None, headers=session_headers)
         self.assertEqual(status, 200)
         self.assertEqual([item['id'] for item in json.loads(archive)], [created['id']])
+
+        # An existing seven-day session upgrades without asking for the code again.
+        with self.db:
+            self.db.execute('UPDATE web_sessions SET expires_at=? WHERE session_hash=?',
+                            (stamp(utcnow() + timedelta(days=7)), session_hash))
+        status, headers, _ = self.request('GET', session_path, user=None, headers=session_headers)
+        self.assertEqual(status, 200)
+        renewed = SimpleCookie(headers['Set-Cookie'])['roadio_web_session']
+        self.assertEqual(renewed['max-age'], str(180 * 24 * 60 * 60))
+        renewed_headers = {**web_headers, 'Cookie': f'{renewed.key}={renewed.value}'}
+        self.assertEqual(self.request('GET', '/v1/capsules', user=None, headers=renewed_headers)[0], 200)
 
         with self.db:
             self.db.execute('UPDATE web_sessions SET expires_at=?', (stamp(utcnow() - timedelta(seconds=1)),))
