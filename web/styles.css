@@ -13,14 +13,14 @@ body{margin:0}
 .splash-orbit-reverse{transform:translate(-50%,-50%) rotate(180deg)}
 .splash-orbit-middle-reverse{transform:translate(-50%,-50%) rotate(151.73deg)}
 .splash-orbit-inner-reverse{transform:translate(-50%,-50%) rotate(-160.63deg)}
-.splash-brand{position:absolute;z-index:3;left:-127.725px;top:-100px;display:flex;align-items:center;justify-content:center;width:255.45px;height:200px;padding:25px;border-radius:50%;background:radial-gradient(ellipse at center,var(--primary-100) 0%,var(--primary-100) 60%,var(--primary-50) 79.808%,var(--neutral-50) 100%)}
+.splash-brand{position:absolute;z-index:3;left:-127.725px;top:-127.725px;display:flex;align-items:center;justify-content:center;width:255.45px;height:255.45px;padding:25px;border-radius:50%;background:radial-gradient(circle at center,var(--primary-100) 0%,var(--primary-100) 54%,var(--primary-50) 76%,var(--neutral-50) 100%)}
 .splash-symbol{display:block;flex:0 0 66.667px;width:66.667px;height:66.667px}
 .splash-wordmark{display:block;flex:0 0 138.784px;width:138.784px;height:33.329px}
 .splash-ripples{position:absolute;z-index:2;left:0;top:0;width:0;height:0}
-.splash-ripples span{position:absolute;left:-50px;top:-50px;width:100px;height:100px;border:2px solid rgba(96,140,225,.28);border-radius:50%;box-shadow:0 0 24px rgba(145,178,239,.22),inset 0 0 20px rgba(223,233,252,.28);opacity:0;animation:splash-ripple 1.8s cubic-bezier(.2,.55,.25,1) infinite;will-change:transform,opacity}
-.splash-ripples span:nth-child(2){animation-delay:.45s}
-.splash-ripples span:nth-child(3){animation-delay:.9s}
-@keyframes splash-ripple{0%{transform:scale(.55);opacity:0}12%{opacity:.72}72%{opacity:.2}100%{transform:scale(4.4);opacity:0}}
+.splash-ripples span{position:absolute;left:-60px;top:-60px;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,transparent 50%,rgba(223,233,252,.1) 57%,rgba(96,140,225,.34) 65%,rgba(145,178,239,.2) 72%,transparent 84%);filter:blur(3px);opacity:0;animation:splash-ripple 2.7s cubic-bezier(.18,.48,.22,1) infinite;will-change:transform,opacity}
+.splash-ripples span:nth-child(2){animation-delay:.68s}
+.splash-ripples span:nth-child(3){animation-delay:1.36s}
+@keyframes splash-ripple{0%{transform:scale(.55);opacity:0}16%{opacity:.84}72%{opacity:.3}100%{transform:scale(4);opacity:0}}
 @media (prefers-reduced-motion:reduce){.splash{transition:none}.splash-ripples span{animation:none;opacity:0}}
 button,input{font:inherit}
 button{cursor:pointer}
