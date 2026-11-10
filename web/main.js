@@ -98,6 +98,10 @@ let radiusCircle = null;
 let locationMode = 'select';
 let storyMarkers = [];
 let storyInfoWindow = null;
+const storyAudienceIcons = {
+  SELF: './assets/archive-lock.svg', SELECTED: './assets/archive-neighbors.svg', PUBLIC: './assets/archive-globe.svg',
+  private: './assets/archive-lock.svg', neighbors: './assets/archive-neighbors.svg', public: './assets/archive-globe.svg'
+};
 let selectedLocation = null;
 let searchTimer = null;
 let searchSequence = 0;
@@ -179,22 +183,29 @@ async function loadStoryMarkers() {
     if (await serverCheck) {
       stories = (await (await apiRequest('/v1/capsules')).json())
         .filter(item => item.state === 'ACTIVE')
-        .map(item => ({ id: item.id, title: item.title, position: item.position }));
+        .map(item => ({ id: item.id, title: item.title, position: item.position, audience: item.visibility }));
     } else {
       stories = (await archiveRequest('readonly', 'getAll'))
         .filter(item => item.expiresAt > Date.now())
-        .map(item => ({ id: item.id, title: item.title, position: item.location }));
+        .map(item => ({ id: item.id, title: item.title, position: item.location, audience: item.audience }));
     }
     const valid = stories.filter(item => Number.isFinite(item.position?.latitude) && Number.isFinite(item.position?.longitude));
     if (!valid.length) { setLocationToast('지도에 표시할 이야기가 없어요.', 4000); return; }
     const bounds = new naver.maps.LatLngBounds();
     valid.forEach(item => {
       const position = new naver.maps.LatLng(item.position.latitude, item.position.longitude);
-      const marker = new naver.maps.Marker({ map: naverMap, position, title: item.title });
+      const marker = new naver.maps.Marker({
+        map: naverMap, position, title: item.title,
+        icon: {
+          content: '<img class="story-map-marker" src="./assets/location-pin.svg?v=2" alt="">',
+          size: new naver.maps.Size(74, 86), anchor: new naver.maps.Point(37, 65)
+        }
+      });
       naver.maps.Event.addListener(marker, 'click', () => {
         storyInfoWindow?.close();
+        const audienceIcon = storyAudienceIcons[item.audience] || storyAudienceIcons.SELF;
         storyInfoWindow = new naver.maps.InfoWindow({
-          content: `<div class="story-map-label">${safeMapTitle(item.title)}</div>`,
+          content: `<div class="story-map-label"><img src="${audienceIcon}" alt=""><span>${safeMapTitle(item.title)}</span></div>`,
           borderWidth: 0, backgroundColor: 'transparent', disableAnchor: true, pixelOffset: new naver.maps.Point(0, -8)
         });
         storyInfoWindow.open(naverMap, marker);
@@ -218,6 +229,7 @@ async function openLocationScreen(mode = 'select') {
   show(locationScreen);
   if (naverMap) {
     naverMap.autoResize();
+    radiusCircle?.setMap(mode === 'stories' ? null : naverMap);
     if (mode === 'stories') await loadStoryMarkers();
     else clearStoryMarkers();
     return;
@@ -235,6 +247,7 @@ async function openLocationScreen(mode = 'select') {
     const initial = new naver.maps.LatLng(37.5665, 126.9780);
     naverMap = new naver.maps.Map('location-map', { center: initial, zoom: 16, scaleControl: false, mapDataControl: false, logoControlOptions: { position: naver.maps.Position.BOTTOM_LEFT } });
     radiusCircle = new naver.maps.Circle({ map: naverMap, center: initial, radius: 100, strokeColor: '#2356c4', strokeOpacity: .7, strokeWeight: 1, fillColor: '#91b2ef', fillOpacity: .25, clickable: false });
+    if (locationMode === 'stories') radiusCircle.setMap(null);
     document.getElementById('location-radius-preview').hidden = true;
     naver.maps.Event.addListener(naverMap, 'center_changed', center => radiusCircle.setCenter(center));
     naver.maps.Event.addListener(naverMap, 'dragend', () => {

@@ -88,6 +88,7 @@ button{cursor:pointer}
 .location-back img{width:12px;height:17px}
 .location-current{right:20px;bottom:calc(env(safe-area-inset-bottom) + 120px);width:48px;height:48px;border:0;border-radius:999px;background:var(--primary-50)}
 .location.story-map-mode .location-current{bottom:calc(env(safe-area-inset-bottom) + 30px)}
+.location.story-map-mode .location-center-pin,.location.story-map-mode .location-radius-preview{display:none}
 .location-current img{width:24px;height:24px}
 .location-search{position:absolute;z-index:6;top:calc(env(safe-area-inset-top) + 30px);left:96px;right:20px;min-height:56px;padding:0 20px;border:1px solid rgba(255,255,255,.72);border-radius:28px;background:rgba(247,248,249,.97);box-shadow:0 4px 16px rgba(0,0,0,.15);overflow:hidden}
 .location-search.has-results{border-radius:28px}
@@ -105,7 +106,10 @@ button{cursor:pointer}
 .location-confirm{position:absolute;z-index:5;left:50%;bottom:calc(env(safe-area-inset-bottom) + 30px);width:min(251px,calc(100% - 40px));transform:translateX(-50%)}
 .location.story-map-mode .location-confirm{display:none}
 .location-confirm:disabled{background:var(--neutral-300);opacity:1;cursor:not-allowed}
-.story-map-label{max-width:220px;padding:9px 13px;border:1px solid var(--primary-100);border-radius:14px;background:rgba(247,248,249,.96);box-shadow:0 4px 16px rgba(0,12,37,.16);color:var(--neutral-900p);font-size:14px;font-weight:600;line-height:1.4;letter-spacing:-.35px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.story-map-marker{display:block;width:74px;height:86px;filter:drop-shadow(0 4px 8px rgba(0,0,0,.25))}
+.story-map-label{display:flex;align-items:center;gap:8px;max-width:220px;padding:9px 13px;border:1px solid var(--primary-100);border-radius:14px;background:rgba(247,248,249,.96);box-shadow:0 4px 16px rgba(0,12,37,.16);color:var(--neutral-900p);font-size:14px;font-weight:600;line-height:1.4;letter-spacing:-.35px;white-space:nowrap}
+.story-map-label img{flex:0 0 24px;width:24px;height:24px;object-fit:contain}
+.story-map-label span{min-width:0;overflow:hidden;text-overflow:ellipsis}
 .location-back:focus-visible,.location-current:focus-visible,.location-results button:focus-visible{outline:3px solid var(--primary-600p);outline-offset:2px}
 .audience{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:space-between;min-height:100vh;min-height:100dvh;padding:calc(env(safe-area-inset-top) + 150px) 20px calc(env(safe-area-inset-bottom) + 30px);background:var(--neutral-50)}
 .audience-back{position:absolute;top:calc(env(safe-area-inset-top) + 30px);left:20px;display:grid;place-items:center;width:56px;height:56px;padding:0;border:0;border-radius:999px;background:rgba(0,0,0,.03);box-shadow:0 4px 16px rgba(0,0,0,.15)}
