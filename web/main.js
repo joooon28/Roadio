@@ -95,6 +95,9 @@ const audienceLabels = { private: '나에게만 들려주기', neighbors: '내 �
 let selectedAudience = 'private';
 let naverMap = null;
 let radiusCircle = null;
+let locationMode = 'select';
+let storyMarkers = [];
+let storyInfoWindow = null;
 let selectedLocation = null;
 let searchTimer = null;
 let searchSequence = 0;
@@ -161,10 +164,64 @@ function loadNaverMaps(clientId) {
     document.head.appendChild(script);
   });
 }
-async function openLocationScreen() {
+function clearStoryMarkers() {
+  storyMarkers.forEach(marker => marker.setMap(null));
+  storyMarkers = [];
+  storyInfoWindow?.close();
+}
+function safeMapTitle(value) {
+  return String(value).replace(/[&<>'"]/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]);
+}
+async function loadStoryMarkers() {
+  clearStoryMarkers();
+  try {
+    let stories;
+    if (await serverCheck) {
+      stories = (await (await apiRequest('/v1/capsules')).json())
+        .filter(item => item.state === 'ACTIVE')
+        .map(item => ({ id: item.id, title: item.title, position: item.position }));
+    } else {
+      stories = (await archiveRequest('readonly', 'getAll'))
+        .filter(item => item.expiresAt > Date.now())
+        .map(item => ({ id: item.id, title: item.title, position: item.location }));
+    }
+    const valid = stories.filter(item => Number.isFinite(item.position?.latitude) && Number.isFinite(item.position?.longitude));
+    if (!valid.length) { setLocationToast('지도에 표시할 이야기가 없어요.', 4000); return; }
+    const bounds = new naver.maps.LatLngBounds();
+    valid.forEach(item => {
+      const position = new naver.maps.LatLng(item.position.latitude, item.position.longitude);
+      const marker = new naver.maps.Marker({ map: naverMap, position, title: item.title });
+      naver.maps.Event.addListener(marker, 'click', () => {
+        storyInfoWindow?.close();
+        storyInfoWindow = new naver.maps.InfoWindow({
+          content: `<div class="story-map-label">${safeMapTitle(item.title)}</div>`,
+          borderWidth: 0, backgroundColor: 'transparent', disableAnchor: true, pixelOffset: new naver.maps.Point(0, -8)
+        });
+        storyInfoWindow.open(naverMap, marker);
+      });
+      storyMarkers.push(marker);
+      bounds.extend(position);
+    });
+    if (valid.length === 1) { naverMap.setCenter(storyMarkers[0].getPosition()); naverMap.setZoom(16); }
+    else naverMap.fitBounds(bounds, { top: 120, right: 40, bottom: 80, left: 40 });
+    setLocationToast(`${valid.length}개의 이야기 위치를 표시했어요.`, 3500);
+  } catch (error) {
+    setLocationToast(error.message || '이야기 위치를 불러오지 못했어요.', 6000);
+  }
+}
+async function openLocationScreen(mode = 'select') {
+  locationMode = mode;
+  locationScreen.classList.toggle('story-map-mode', mode === 'stories');
+  locationScreen.setAttribute('aria-label', mode === 'stories' ? '내 이야기 지도' : '이야기를 남길 위치 선택');
+  document.getElementById('location-back').setAttribute('aria-label', mode === 'stories' ? '홈으로 돌아가기' : '미리듣기로 돌아가기');
   audio.pause();
   show(locationScreen);
-  if (naverMap) { naverMap.autoResize(); return; }
+  if (naverMap) {
+    naverMap.autoResize();
+    if (mode === 'stories') await loadStoryMarkers();
+    else clearStoryMarkers();
+    return;
+  }
   const clientId = window.ROADIO_CONFIG?.naverMapClientId?.trim();
   const fallback = document.getElementById('location-map-fallback');
   if (!clientId) {
@@ -181,11 +238,14 @@ async function openLocationScreen() {
     document.getElementById('location-radius-preview').hidden = true;
     naver.maps.Event.addListener(naverMap, 'center_changed', center => radiusCircle.setCenter(center));
     naver.maps.Event.addListener(naverMap, 'dragend', () => {
+      if (locationMode !== 'select') return;
       locationInteracted = true;
       setSelectedLocation(naverMap.getCenter());
     });
     fallback.hidden = true;
-    if (navigator.geolocation) {
+    if (locationMode === 'stories') {
+      await loadStoryMarkers();
+    } else if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(position => {
         if (locationScreen.hidden || locationInteracted) return;
         const center = new naver.maps.LatLng(position.coords.latitude, position.coords.longitude);
@@ -235,6 +295,13 @@ function renderAddressResults(addresses, query) {
       const position = new naver.maps.LatLng(lat, lng);
       locationInteracted = true;
       naverMap.setCenter(position);
+      if (locationMode === 'stories') {
+        locationQuery.value = label;
+        hideSearchResults();
+        locationQuery.blur();
+        setLocationToast('검색한 위치로 이동했어요.');
+        return;
+      }
       setSelectedLocation(position);
       selectedLocation.address = label;
       locationQuery.value = label;
@@ -274,7 +341,11 @@ locationQuery.addEventListener('keydown', event => {
   if (event.key === 'Escape') { hideSearchResults(); locationQuery.blur(); }
   if (event.key === 'Enter' && !locationResults.hidden) { event.preventDefault(); locationResults.querySelector('button')?.click(); }
 });
-document.getElementById('location-back').addEventListener('click', () => { clearTimeout(searchTimer); searchSequence++; hideSearchResults(); show(preview); });
+document.getElementById('location-back').addEventListener('click', () => {
+  clearTimeout(searchTimer); searchSequence++; hideSearchResults();
+  if (locationMode === 'stories') { clearStoryMarkers(); resetHome(); }
+  else show(preview);
+});
 document.getElementById('location-current').addEventListener('click', () => {
   if (!naverMap) { setLocationToast('네이버 지도를 먼저 연결해 주세요.'); return; }
   if (!navigator.geolocation) { setLocationToast('이 브라우저에서 현재 위치를 사용할 수 없어요.'); return; }
@@ -282,7 +353,7 @@ document.getElementById('location-current').addEventListener('click', () => {
     const center = new naver.maps.LatLng(position.coords.latitude, position.coords.longitude);
     locationInteracted = true;
     naverMap.setCenter(center);
-    setSelectedLocation(center);
+    if (locationMode === 'select') setSelectedLocation(center);
     setLocationToast('현재 위치로 이동했어요.');
   }, error => setLocationToast(locationErrorMessage(error), 6000), { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 });
 });
@@ -531,7 +602,7 @@ document.getElementById('next-button').addEventListener('click', () => {
 });
 title.addEventListener('input', () => title.setCustomValidity(''));
 document.getElementById('my-capsules').addEventListener('click', () => { if (recorder?.state === 'recording') cancelRecording(); openArchiveScreen(); });
-document.getElementById('capsule-map').addEventListener('click', () => { if (recorder?.state === 'recording') cancelRecording(); showPending('이야기 지도 준비 중', '이 지도는 이야기의 위치만 보여줄 예정입니다. 지도에서 음성은 재생하지 않습니다.'); });
+document.getElementById('capsule-map').addEventListener('click', () => { if (recorder?.state === 'recording') cancelRecording(); openLocationScreen('stories'); });
 document.getElementById('back-button').addEventListener('click', () => { clearAudio(); resetHome(); });
 
 // 06a browser-only archive. Server publishing and cross-device visibility belong to DEV-09/10.
