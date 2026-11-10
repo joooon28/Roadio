@@ -10,16 +10,21 @@
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon.png?v=20261109">
   <link rel="manifest" href="./manifest.webmanifest">
   <title>Roadio</title>
-  <link rel="stylesheet" href="./styles.css?v=20261110-splash">
+  <link rel="stylesheet" href="./styles.css?v=20261110-splash-ripple">
   <script src="./config.js" defer></script>
-  <script src="./main.js?v=20261110-splash" defer></script>
+  <script src="./main.js?v=20261110-splash-ripple" defer></script>
 </head>
 <body>
   <div class="splash" id="splash" role="img" aria-label="Roadio 시작 화면">
     <div class="splash-art" aria-hidden="true">
       <img class="splash-orbit splash-orbit-outer" src="./assets/splash/ellipse-3.svg" alt="">
-      <div class="splash-glow"></div>
-      <img class="splash-symbol" src="./assets/splash/symbol.svg" alt="">
+      <div class="splash-ripples">
+        <span></span><span></span><span></span>
+      </div>
+      <div class="splash-brand">
+        <img class="splash-symbol" src="./assets/splash/symbol.svg" alt="">
+        <img class="splash-wordmark" src="./assets/splash/roadio-wordmark.svg" alt="">
+      </div>
       <img class="splash-orbit splash-orbit-middle" src="./assets/splash/ellipse-2.svg" alt="">
       <img class="splash-orbit splash-orbit-inner" src="./assets/splash/ellipse-1.svg" alt="">
       <img class="splash-orbit splash-orbit-outer splash-orbit-reverse" src="./assets/splash/ellipse-4.svg" alt="">

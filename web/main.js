@@ -1,5 +1,6 @@
 const splash = document.getElementById('splash');
-window.setTimeout(() => { splash.hidden = true; }, 1800);
+window.setTimeout(() => { splash.classList.add('is-leaving'); }, 2400);
+window.setTimeout(() => { splash.hidden = true; }, 2800);
 const home = document.getElementById('home-screen');
 const preview = document.getElementById('preview-screen');
 const locationScreen = document.getElementById('location-screen');
