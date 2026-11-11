@@ -1,7 +1,14 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
 }
+
+val filmingToken = providers.fileContents(rootProject.layout.projectDirectory.file("local.properties"))
+    .asText.map { text ->
+        Properties().apply { load(text.reader()) }.getProperty("roadio.filming.vehicleToken", "").trim()
+    }.orElse("")
 
 android {
     namespace = "com.joons.roadio"
@@ -15,11 +22,19 @@ android {
         targetSdk = 37
         versionCode = 1
         versionName = "1.0"
+        buildConfigField("String", "FILMING_VEHICLE_TOKEN", "\"\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
+        debug {
+            val token = filmingToken.get()
+            require(token.isEmpty() || Regex("[A-Za-z0-9_-]{32,128}").matches(token)) {
+                "roadio.filming.vehicleToken must contain 32–128 URL-safe characters"
+            }
+            buildConfigField("String", "FILMING_VEHICLE_TOKEN", "\"$token\"")
+        }
         release {
             optimization {
                 enable = true
@@ -34,6 +49,7 @@ android {
     useLibrary("android.car")
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

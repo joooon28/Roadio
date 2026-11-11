@@ -37,6 +37,7 @@ private enum class DemoPage { HOME, LIST, DETAIL, PLAYER }
 class MainActivity : ComponentActivity() {
     private lateinit var playbackClient: RoadioPlaybackClient
     private lateinit var vehicleLocation: VehicleDiscoveryController
+    private lateinit var uxRestrictions: VehicleUxRestrictions
     private var showOfflineSample by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -48,11 +49,12 @@ class MainActivity : ComponentActivity() {
         }
         playbackClient = RoadioPlaybackClient(this)
         vehicleLocation = VehicleDiscoveryController(this)
+        uxRestrictions = VehicleUxRestrictions(this)
         playbackClient.connect()
         setContent {
             RoadioTheme {
-                if (showOfflineSample) RoadioHome(playbackClient, onBackServer = { playbackClient.stop(); showOfflineSample = false })
-                else VehicleServerScreen(this, vehicleLocation, playbackClient, onOpenSample = {
+                if (showOfflineSample && uxRestrictions.restricted == false) RoadioHome(playbackClient, onBackServer = { playbackClient.stop(); showOfflineSample = false })
+                else VehicleServerScreen(this, vehicleLocation, playbackClient, uxRestrictions, onOpenSample = {
                     playbackClient.stop(); VehicleSelectedAudio.clear(); showOfflineSample = true
                 })
             }
@@ -67,6 +69,7 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         if (::playbackClient.isInitialized) playbackClient.release()
         if (::vehicleLocation.isInitialized) vehicleLocation.release()
+        if (::uxRestrictions.isInitialized) uxRestrictions.close()
         VehicleSelectedAudio.clear()
         super.onDestroy()
     }

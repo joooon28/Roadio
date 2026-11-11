@@ -5,6 +5,7 @@ import android.content.Context
 import android.media.browse.MediaBrowser
 import android.media.session.MediaController
 import android.media.session.PlaybackState
+import android.os.SystemClock
 import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -18,6 +19,14 @@ class RoadioPlaybackClient(private val context: Context) {
         private set
     var errorMessage by mutableStateOf<String?>(null)
         private set
+
+    fun currentPositionMs(): Long {
+        val state = controller?.playbackState ?: return 0L
+        val elapsed = if (state.state == PlaybackState.STATE_PLAYING) {
+            SystemClock.elapsedRealtime() - state.lastPositionUpdateTime
+        } else 0L
+        return (state.position + elapsed * state.playbackSpeed).toLong().coerceAtLeast(0L)
+    }
 
     private var pendingPlayId: String? = null
     private var browser: MediaBrowser? = null

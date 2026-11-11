@@ -60,7 +60,7 @@ python3 server/app.py --data-dir server/data add-recipient 작성자ID 이웃ID
 
 ## DEV-11 차량 앱 서버 연결
 
-차량 앱 기본 화면에서 별도 차량 시연 계정 토큰을 입력하고 Pleos 위치 확인 또는 명시된 가상 좌표를 적용한 뒤 **주변 이야기 검색**을 누르세요. 로컬 Android 에뮬레이터의 기본 서버 주소는 `http://10.0.2.2:8787`입니다. 같은 `server/data`를 사용하는 위 로컬 서버가 켜져 있어야 합니다. 목록에서 이야기를 선택한 뒤 재생을 누를 때 서버가 권한·만료를 다시 확인합니다. 자동 재생은 없습니다. 원격 서버는 HTTPS 주소만 받습니다.
+차량 앱 기본 화면에서 별도 차량 시연 계정 토큰을 입력하고 Pleos 위치 확인 또는 명시된 가상 좌표를 적용한 뒤 **주변 이야기 검색**을 누르세요. 로컬 서버로 시험하려면 서버 주소를 `http://10.0.2.2:8787`로 바꾸세요. 같은 `server/data`를 사용하는 위 로컬 서버가 켜져 있어야 합니다. 목록에서 이야기를 선택한 뒤 재생을 누를 때 서버가 권한·만료를 다시 확인합니다. 자동 재생은 없습니다. 원격 서버는 HTTPS 주소만 받습니다.
 
 실행 중인 에뮬레이터가 없어 이번 단계의 실제 화면·음성 출력은 아직 확인 전입니다. 단계별 근거와 한계는 [DEV-11 기록](DEV-11-validation.md)에 있습니다.
 
@@ -78,3 +78,17 @@ ROADIO_BOOTSTRAP_VEHICLE_TOKEN=<차량 청취자용 비밀 토큰>
 선택적으로 `ROADIO_BOOTSTRAP_OWNER_NAME`, `ROADIO_BOOTSTRAP_VEHICLE_NAME`을 지정할 수 있다. 서버는 시작할 때 안정적인 시연 사용자 ID 두 개와 작성자→차량 수신자 관계를 중복 없이 준비하고 토큰 원문은 저장하지 않는다. 토큰을 변경하면 다음 시작부터 저장된 해시가 바뀐다. `/v1/health`를 Railway Healthcheck Path로 설정하고, 배포 뒤 HTTPS 주소에서 상태 응답을 확인한다.
 
 이 구성은 공모전 시연용이다. 실제 로그인·초대 동의·비밀값 회전 UI·관리자 복구 기능을 대신하지 않는다. 장기 운영에서는 SQLite와 로컬 볼륨 대신 관리형 DB와 오브젝트 스토리지 분리를 검토한다.
+
+## 로컬 촬영용 차량 앱 자동 연결
+
+Android Studio에서 저장소 루트의 `local.properties`를 열고, 기존 설정 아래에 이미 쓰는 차량 시연 계정 토큰을 한 번 입력한다.
+
+```properties
+roadio.filming.vehicleToken=여기에_기존_차량_시연_계정_토큰
+```
+
+Pleos 에뮬레이터를 선택하고 Android Studio에서 차량 `app`을 Run한다. 이 설정이 있는 디버그 빌드는 기존 Railway 서버와 차량 계정을 사용해 시작한다. 화면 조작이 가능한 상태에서 Pleos 위치 확인이 시작되며, 필요할 때 시스템 위치 권한을 허용한다. 촬영 화면은 서버 주소·토큰 입력을 숨긴다. 앱의 가상 위치 입력칸에 녹음 반경 밖 좌표를 넣고 `가상 위치 적용`을 누른 다음, 반경 안 좌표로 같은 동작을 반복한다. 새 위치에서 자동으로 주변 이야기를 확인한다. 화면에 `직접 입력한 가상 위치 · 시연 전용`으로 표시된다.
+
+Pleos SDK 경로를 별도로 검증할 때는 `Pleos 위치 확인`으로 전환하고 `adb emu geo fix <경도> <위도>`로 AVD GPS를 옮긴다. Android Studio Run 뒤에도 예전 화면이 보인다면 최신 테스트용 APK가 설치됐는지 확인한다. 이 프로젝트의 Android Studio 빌드는 `app/build/intermediates/apk/debug/app-debug.apk`를 생성했고, Pleos AVD에 `adb install -r -t app/build/intermediates/apk/debug/app-debug.apk`로 설치했다.
+
+`local.properties`는 Git에서 제외된다. 토큰이 포함된 디버그 APK는 로컬 촬영에만 사용한다. 릴리스 빌드의 촬영 토큰은 비어 있다.

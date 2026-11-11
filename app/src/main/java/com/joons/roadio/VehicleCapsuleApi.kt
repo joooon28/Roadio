@@ -34,7 +34,7 @@ class VehicleCapsuleApi(private val context: Context) {
     }
 
     /** The server rechecks access on this request. Playback only begins after a user tap and successful download. */
-    fun fetchSelectedAudio(baseUrl: String, token: String, capsuleId: String): Uri {
+    fun fetchSelectedAudio(baseUrl: String, token: String, capsuleId: String): File {
         require(Regex("[0-9a-f-]{36}").matches(capsuleId))
         val connection = open(baseUrl, token, "/v1/capsules/$capsuleId/audio", "GET")
         return try {
@@ -53,8 +53,7 @@ class VehicleCapsuleApi(private val context: Context) {
             try {
                 connection.inputStream.use { input -> file.outputStream().use { output -> input.copyTo(output) } }
                 if (file.length() == 0L || file.length() > 10L * 1024 * 1024) throw IllegalStateException("음성 파일 크기를 확인해 주세요.")
-                VehicleSelectedAudio.register(capsuleId, file)
-                Uri.fromFile(file)
+                file
             } catch (error: Exception) {
                 file.delete()
                 throw error

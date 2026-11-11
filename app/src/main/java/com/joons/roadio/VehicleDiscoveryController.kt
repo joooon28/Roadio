@@ -16,6 +16,7 @@ class VehicleDiscoveryController(private val activity: ComponentActivity) {
     private var fused: FusedLocation? = null
     private var initialized = false
     private var registered = false
+    private var acceptSdkLocation = false
     var position by mutableStateOf<SamplePosition?>(null)
         private set
     var source by mutableStateOf<String?>(null)
@@ -33,13 +34,16 @@ class VehicleDiscoveryController(private val activity: ComponentActivity) {
         override fun onChanged(location: LocationData?) {
             if (location == null) return
             activity.runOnUiThread {
+                if (!acceptSdkLocation) return@runOnUiThread
                 position = SamplePosition(location.latitude, location.longitude)
                 source = if (isEmulator()) "PLEOS_EMULATOR" else "PLEOS_DEVICE"
                 message = "위치를 확인했습니다. 주변 이야기를 검색해 주세요."
             }
         }
         override fun onError(exception: Exception) {
-            activity.runOnUiThread { message = "위치 오류: ${exception.message ?: exception.javaClass.simpleName}" }
+            activity.runOnUiThread {
+                if (acceptSdkLocation) message = "위치 오류: ${exception.message ?: exception.javaClass.simpleName}"
+            }
         }
     }
 
@@ -57,6 +61,11 @@ class VehicleDiscoveryController(private val activity: ComponentActivity) {
             }
             if (!initialized) { fused!!.initialize(); initialized = true }
             message = "Pleos 위치를 확인하는 중입니다."
+            if (source == "DEMO_MANUAL") {
+                position = null
+                source = null
+            }
+            acceptSdkLocation = true
             fused!!.getLastKnownLocation(listener)
             if (!registered) { fused!!.registerFusedLocationCallback(listener); registered = true }
         } catch (error: Exception) {
@@ -77,14 +86,14 @@ class VehicleDiscoveryController(private val activity: ComponentActivity) {
             message = "유효한 위도·경도를 입력해 주세요."
             return
         }
-        if (registered) try { fused?.unregisterFusedLocationCallback(listener) } catch (_: Exception) {}
-        registered = false
+        release()
         position = SamplePosition(lat, lon)
         source = "DEMO_MANUAL"
         message = "가상 위치가 설정됐습니다. 실제 차량 위치가 아닙니다."
     }
 
     fun release() {
+        acceptSdkLocation = false
         if (registered) try { fused?.unregisterFusedLocationCallback(listener) } catch (_: Exception) {}
         registered = false
     }
