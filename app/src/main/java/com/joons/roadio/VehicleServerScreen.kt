@@ -189,6 +189,9 @@ internal fun VehicleServerScreen(
     val canOffer = !busy && status !in setOf(RoadioPlaybackClient.Status.CONNECTING,
         RoadioPlaybackClient.Status.PLAYING, RoadioPlaybackClient.Status.PAUSED, RoadioPlaybackClient.Status.BUFFERING)
     offer?.takeIf { autoDiscovery && canOffer }?.let { story ->
+        LaunchedEffect(story.id) {
+            VehicleDiscoveryChime.play(story.audioType)
+        }
         fun skip() {
             offers.answer(story)
             offer = null
