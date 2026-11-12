@@ -5,6 +5,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +27,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -51,9 +54,10 @@ internal fun VehicleStoryPlayingScreen(
     title: String,
     positionMs: Long,
     durationMs: Long,
-    isPaused: Boolean,
+    showPlayIcon: Boolean,
     controlsEnabled: Boolean,
     onTogglePlayback: () -> Unit,
+    onSeek: (Long) -> Unit,
 ) {
     BoxWithConstraints(
         modifier = Modifier
@@ -81,7 +85,27 @@ internal fun VehicleStoryPlayingScreen(
             )
         }
 
-        Canvas(Modifier.size((PlayingProgressSize * scale).dp)) {
+        Canvas(
+            Modifier
+                .size((PlayingProgressSize * scale).dp)
+                .pointerInput(durationMs) {
+                    fun seekFromX(x: Float) {
+                        if (durationMs <= 0L) return
+                        val fraction = (x / size.width.toFloat()).coerceIn(0f, 1f)
+                        onSeek((durationMs * fraction).toLong())
+                    }
+                    detectTapGestures { offset -> seekFromX(offset.x) }
+                }
+                .pointerInput(durationMs) {
+                    detectDragGestures { change, _ ->
+                        change.consume()
+                        if (durationMs > 0L) {
+                            val fraction = (change.position.x / size.width.toFloat()).coerceIn(0f, 1f)
+                            onSeek((durationMs * fraction).toLong())
+                        }
+                    }
+                },
+        ) {
             val strokeWidth = 10f * scale
             val inset = strokeWidth / 2f
             val arcSize = size.minDimension - strokeWidth
@@ -175,11 +199,11 @@ internal fun VehicleStoryPlayingScreen(
             ) {
                 Image(
                     painter = painterResource(
-                        if (isPaused) R.drawable.roadio_vehicle_playing_play
+                        if (showPlayIcon) R.drawable.roadio_vehicle_playing_play
                         else R.drawable.roadio_vehicle_playing_pause,
                     ),
-                    contentDescription = if (isPaused) "재생" else "일시정지",
-                    modifier = if (isPaused) {
+                    contentDescription = if (showPlayIcon) "재생" else "일시정지",
+                    modifier = if (showPlayIcon) {
                         Modifier.size(
                             width = (83.299f * scale).dp,
                             height = (82.0375f * scale).dp,

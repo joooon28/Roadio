@@ -29,6 +29,7 @@ class RoadioPlaybackClient(private val context: Context) {
     }
 
     private var pendingPlayId: String? = null
+    private var pendingSeekMs: Long? = null
     private var browser: MediaBrowser? = null
     private var controller: MediaController? = null
     private val callback = object : MediaController.Callback() {
@@ -42,6 +43,12 @@ class RoadioPlaybackClient(private val context: Context) {
                 else -> if (status == Status.STOPPED) Status.STOPPED else Status.READY
             }
             errorMessage = if (status == Status.ERROR) state?.errorMessage?.toString() ?: "음성을 재생할 수 없습니다." else null
+            if (status in setOf(Status.BUFFERING, Status.PLAYING, Status.PAUSED)) {
+                pendingSeekMs?.let { positionMs ->
+                    pendingSeekMs = null
+                    controller?.transportControls?.seekTo(positionMs)
+                }
+            }
             Log.i("RoadioDev06", "controllerState=${state?.state}, status=$status")
         }
         override fun onSessionDestroyed() {
@@ -85,7 +92,7 @@ class RoadioPlaybackClient(private val context: Context) {
         ).also { it.connect() }
     }
 
-    fun playSelected(capsuleId: String) {
+    fun playSelected(capsuleId: String, startPositionMs: Long = 0L) {
         val connected = controller ?: run {
             status = Status.ERROR
             errorMessage = "오디오 서비스 연결 전입니다. 다시 시도해 주세요."
@@ -98,6 +105,7 @@ class RoadioPlaybackClient(private val context: Context) {
         }
         status = Status.BUFFERING
         errorMessage = null
+        pendingSeekMs = startPositionMs.takeIf { it > 0L }
         connected.transportControls.playFromMediaId(capsuleId, null)
         Log.i("RoadioDev06", "사용자 선택 재생 요청: $capsuleId")
     }
@@ -113,8 +121,10 @@ class RoadioPlaybackClient(private val context: Context) {
 
     fun pause() { controller?.transportControls?.pause() }
     fun resume() { controller?.transportControls?.play() }
+    fun seekTo(positionMs: Long) { controller?.transportControls?.seekTo(positionMs.coerceAtLeast(0L)) }
     fun stop() {
         pendingPlayId = null
+        pendingSeekMs = null
         if (status == Status.PLAYING || status == Status.PAUSED || status == Status.BUFFERING) {
             controller?.transportControls?.stop()
             status = Status.STOPPED

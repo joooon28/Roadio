@@ -215,6 +215,7 @@ internal fun VehicleServerScreen(
                 RoadioPlaybackClient.Status.BUFFERING,
                 RoadioPlaybackClient.Status.PLAYING,
                 RoadioPlaybackClient.Status.PAUSED,
+                RoadioPlaybackClient.Status.STOPPED,
             )
         )
     }?.let { story ->
@@ -229,12 +230,21 @@ internal fun VehicleServerScreen(
             title = story.title,
             positionMs = positionMs,
             durationMs = story.durationMs,
-            isPaused = status == RoadioPlaybackClient.Status.PAUSED,
+            showPlayIcon = status != RoadioPlaybackClient.Status.PLAYING,
             controlsEnabled = status == RoadioPlaybackClient.Status.PLAYING ||
-                status == RoadioPlaybackClient.Status.PAUSED,
+                status == RoadioPlaybackClient.Status.PAUSED ||
+                status == RoadioPlaybackClient.Status.STOPPED,
             onTogglePlayback = {
                 if (status == RoadioPlaybackClient.Status.PLAYING) playback.pause()
                 else if (status == RoadioPlaybackClient.Status.PAUSED) playback.resume()
+                else if (status == RoadioPlaybackClient.Status.STOPPED) playback.playSelected(story.id)
+            },
+            onSeek = { requestedPositionMs ->
+                if (status == RoadioPlaybackClient.Status.STOPPED) {
+                    playback.playSelected(story.id, requestedPositionMs)
+                } else {
+                    playback.seekTo(requestedPositionMs)
+                }
             },
         )
         return
