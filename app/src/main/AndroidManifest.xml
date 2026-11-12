@@ -3,7 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="pleos.car.permission.FUSED_LOCATION" />
-    <uses-permission android:name="pleos.car.permission.CAR_SPEED" />
+    <uses-permission android:name="android.car.permission.CAR_SPEED" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.INTERNET" />
