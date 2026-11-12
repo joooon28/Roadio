@@ -41,6 +41,7 @@ data class SampleCapsuleSummary(
     val distanceMeters: Int,
     val contentOrigin: String = "PRELOADED_SAMPLE",
     val audioType: SampleAudioType = SampleAudioType.VOICE_MESSAGE,
+    val discoveryRadiusMeters: Int = 100,
 )
 
 /** Local DEV-05 simulation of the DEV-03 server search rule, not an authorization boundary. */

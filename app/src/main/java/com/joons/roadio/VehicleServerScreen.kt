@@ -40,6 +40,7 @@ import kotlinx.coroutines.withContext
 internal fun VehicleServerScreen(
     activity: ComponentActivity,
     location: VehicleDiscoveryController,
+    speed: VehicleSpeedController,
     playback: RoadioPlaybackClient,
     uxRestrictions: VehicleUxRestrictions,
     onOpenSample: () -> Unit,
@@ -83,16 +84,17 @@ internal fun VehicleServerScreen(
         val url = serverUrl
         val account = token
         activity.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
-            var lastSearched: SamplePosition? = null
+            var lastSearchKey: Pair<SamplePosition, Int>? = null
             while (isActive) {
                 offer = offers.update(emptyList(), Instant.now())
                 val position = location.position
-                if (position != null && position != lastSearched && location.source == source) {
+                val searchKey = position?.let { it to speed.discoveryBand() }
+                if (position != null && searchKey != lastSearchKey && location.source == source) {
                     try {
-                        val nearby = withContext(Dispatchers.IO) { api.search(url, account, position, source) }
+                        val nearby = withContext(Dispatchers.IO) { api.search(url, account, position, source, speed.speedKph) }
                         if (serverUrl == url && token == account && location.source == source) {
                             offer = offers.update(nearby, Instant.now())
-                            lastSearched = position
+                            lastSearchKey = searchKey
                             autoSearchFailed = false
                         }
                     } catch (cancelled: CancellationException) {
@@ -134,7 +136,7 @@ internal fun VehicleServerScreen(
         selected = null; selectedFromOffer = false; busy = true; error = null
         Thread {
             try {
-                val found = api.search(requestedUrl, requestedToken, current, source)
+                val found = api.search(requestedUrl, requestedToken, current, source, speed.speedKph)
                 activity.runOnUiThread {
                     if (location.position == current && location.source == source && serverUrl == requestedUrl && token == requestedToken) {
                         results = found; searched = true; hasResults = found.isNotEmpty()
@@ -198,7 +200,9 @@ internal fun VehicleServerScreen(
         }
         VehicleStoryDiscoveredScreen(
             title = story.title,
-            audioTypeLabel = story.audioType.label,
+            audioTypeLabel = if (story.audioType == SampleAudioType.LOCAL_DRIVING_TIP) {
+                "${story.audioType.label} · 전방 ${story.distanceMeters}m"
+            } else story.audioType.label,
             onListen = {
                 if (uxRestrictions.restricted == false && story.expiresAt.isAfter(Instant.now())) {
                     skip()
@@ -282,6 +286,7 @@ internal fun VehicleServerScreen(
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("위치 출처: ${location.sourceLabel}", style = MaterialTheme.typography.titleMedium)
                 Text(location.message)
+                Text(speed.status)
                 location.position?.let { Text("위도 ${it.latitude}, 경도 ${it.longitude}") }
                 Button(onClick = { location.requestLocation() }) { Text("Pleos 위치 확인") }
                 HorizontalDivider()

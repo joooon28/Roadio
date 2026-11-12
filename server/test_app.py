@@ -71,8 +71,11 @@ class ApiTests(unittest.TestCase):
                                           {**(headers or {}), 'Idempotency-Key': key or str(uuid4())})
         return status, json.loads(payload)
 
-    def search(self, user='stranger', lat=37.5665, source='PLEOS_EMULATOR'):
-        body = json.dumps({'position': {'latitude': lat, 'longitude': 126.978}, 'locationSource': source}).encode()
+    def search(self, user='stranger', lat=37.5665, source='PLEOS_EMULATOR', speed=None):
+        request_data = {'position': {'latitude': lat, 'longitude': 126.978}, 'locationSource': source}
+        if speed is not None:
+            request_data['vehicleSpeedKph'] = speed
+        body = json.dumps(request_data).encode()
         status, headers, payload = self.request('POST', '/v1/capsules/nearby/search', user, body, 'application/json')
         return status, headers, json.loads(payload)
 
@@ -154,6 +157,9 @@ class ApiTests(unittest.TestCase):
         self.assertNotIn('position', stranger_results[0])
         self.assertNotIn('audioUrl', stranger_results[0])
         self.assertEqual(self.search('neighbor', lat=37.568)[2]['capsules'], [])
+        fast_results = self.search('stranger', lat=37.568, speed=80)[2]['capsules']
+        self.assertEqual(len(fast_results), 1)
+        self.assertEqual(fast_results[0]['discoveryRadiusMeters'], 250)
         self.assertEqual(self.request('GET', f"/v1/capsules/{selected['id']}/audio", 'stranger')[0], 404)
         status, headers, audio = self.request('GET', f"/v1/capsules/{public['id']}/audio", 'stranger', headers={'Range': 'bytes=0-3'})
         self.assertEqual((status, audio, headers['Content-Range']), (206, b'RIFF', 'bytes 0-3/36'))
@@ -188,6 +194,7 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(self.create('SELECTED', [])[0], 400)
         self.assertEqual(self.create('PUBLIC', [self.people['neighbor'][0]])[0], 400)
         self.assertEqual(self.create(audio_type='INVALID')[0], 400)
+        self.assertEqual(self.search(speed=301)[0], 400)
 
     def test_manual_demo_location_is_explicit_and_still_uses_server_access_rules(self):
         self.assertEqual(self.create('SELF')[0], 201)

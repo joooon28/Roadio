@@ -10,9 +10,11 @@ import java.time.Instant
 
 /** DEV-11 local development API. Never put a bearer token in an URL or source file. */
 class VehicleCapsuleApi(private val context: Context) {
-    fun search(baseUrl: String, token: String, position: SamplePosition, source: String): List<SampleCapsuleSummary> {
+    fun search(baseUrl: String, token: String, position: SamplePosition, source: String, speedKph: Double?): List<SampleCapsuleSummary> {
         val body = JSONObject().put("position", JSONObject().put("latitude", position.latitude).put("longitude", position.longitude))
-            .put("locationSource", source).put("limit", 20).toString()
+            .put("locationSource", source).put("limit", 20).apply {
+                speedKph?.takeIf { it.isFinite() && it >= 0.0 }?.let { put("vehicleSpeedKph", it) }
+            }.toString()
         val connection = open(baseUrl, token, "/v1/capsules/nearby/search", "POST")
         return try {
             connection.setRequestProperty("Content-Type", "application/json")
@@ -29,6 +31,7 @@ class VehicleCapsuleApi(private val context: Context) {
                     expiresAt = Instant.parse(item.getString("expiresAt")),
                     distanceMeters = item.getInt("distanceMeters"), contentOrigin = item.getString("contentOrigin"),
                     audioType = SampleAudioType.valueOf(item.optString("audioType", "VOICE_MESSAGE")),
+                    discoveryRadiusMeters = item.optInt("discoveryRadiusMeters", 100),
                 )
             }
         } finally { connection.disconnect() }

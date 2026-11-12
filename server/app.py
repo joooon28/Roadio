@@ -20,6 +20,8 @@ MAX_AUDIO = 10 * 1024 * 1024
 MAX_REQUEST = MAX_AUDIO + 64 * 1024
 MIMES = {'audio/webm', 'audio/mp4', 'audio/mpeg', 'audio/wav', 'audio/x-wav', 'audio/ogg', 'audio/aac'}
 RADIUS = 100
+LOCAL_TIP_RADIUS_LOW = 30
+LOCAL_TIP_RADIUS_HIGH = 250
 LIFETIME = timedelta(hours=72)
 TOKEN_PATTERN = re.compile(r'[A-Za-z0-9_-]{32,128}')
 WEB_SESSION_COOKIE = 'roadio_web_session'
@@ -408,7 +410,7 @@ class Api(SimpleHTTPRequestHandler):
                 if not self.headers.get('Content-Type', '').startswith('application/json'):
                     raise ValueError('application/json required')
                 request = json.loads(self.read_body())
-                if not isinstance(request, dict) or set(request) - {'position', 'locationSource', 'limit'}:
+                if not isinstance(request, dict) or set(request) - {'position', 'locationSource', 'limit', 'vehicleSpeedKph'}:
                     raise ValueError('invalid search request')
                 lat, lon = point(request.get('position'))
                 if request.get('locationSource') not in ('PLEOS_DEVICE', 'PLEOS_EMULATOR', 'DEMO_MANUAL'):
@@ -416,17 +418,24 @@ class Api(SimpleHTTPRequestHandler):
                 limit = request.get('limit', 20)
                 if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 30:
                     raise ValueError('invalid limit')
+                speed_kph = request.get('vehicleSpeedKph')
+                if speed_kph is not None and (isinstance(speed_kph, bool) or not isinstance(speed_kph, (int, float)) or
+                                              not math.isfinite(speed_kph) or not 0 <= speed_kph <= 300):
+                    raise ValueError('invalid vehicleSpeedKph')
                 now = utcnow()
                 rows = db.execute('''SELECT c.*, u.display_name FROM capsules c JOIN users u ON u.id=c.owner_id
                                      WHERE c.state='ACTIVE' AND c.expires_at>?''', (stamp(now),)).fetchall()
                 found = []
                 for row in rows:
                     meters = distance(lat, lon, row['latitude'], row['longitude'])
-                    if meters <= RADIUS and accessible(row, user['id'], now):
+                    radius = RADIUS
+                    if row['audio_type'] == 'LOCAL_DRIVING_TIP' and speed_kph is not None:
+                        radius = LOCAL_TIP_RADIUS_LOW if speed_kph < 20 else RADIUS if speed_kph < 60 else LOCAL_TIP_RADIUS_HIGH
+                    if meters <= radius and accessible(row, user['id'], now):
                         found.append(dict(id=row['id'], title=row['title'], authorDisplayName=row['display_name'],
                                           durationMs=row['duration_ms'], visibility=row['visibility'],
                                           expiresAt=row['expires_at'], distanceMeters=round(meters), contentOrigin=row['content_origin'],
-                                          audioType=row['audio_type']))
+                                          audioType=row['audio_type'], discoveryRadiusMeters=radius))
                 found.sort(key=lambda item: (item['distanceMeters'], item['id']))
                 self.send_json(200, {'capsules': found[:limit]})
             else:
