@@ -10,6 +10,10 @@ import kotlin.math.sqrt
 
 data class SamplePosition(val latitude: Double, val longitude: Double)
 enum class SampleVisibility { SELF, SELECTED, PUBLIC }
+enum class SampleAudioType(val label: String) {
+    VOICE_MESSAGE("보이스 메시지"),
+    LOCAL_DRIVING_TIP("로컬 주행 팁"),
+}
 enum class SampleStatus { PUBLISHED, DELETED, REVIEW_PENDING }
 
 data class SampleCapsule(
@@ -23,6 +27,7 @@ data class SampleCapsule(
     val visibility: SampleVisibility,
     val selectedRecipientUserIds: Set<String>,
     val expiresAt: Instant,
+    val audioType: SampleAudioType = SampleAudioType.VOICE_MESSAGE,
     val status: SampleStatus = SampleStatus.PUBLISHED,
 )
 
@@ -35,6 +40,7 @@ data class SampleCapsuleSummary(
     val expiresAt: Instant,
     val distanceMeters: Int,
     val contentOrigin: String = "PRELOADED_SAMPLE",
+    val audioType: SampleAudioType = SampleAudioType.VOICE_MESSAGE,
 )
 
 /** Local DEV-05 simulation of the DEV-03 server search rule, not an authorization boundary. */
@@ -66,6 +72,7 @@ object SampleCapsuleDiscovery {
                     visibility = capsule.visibility,
                     expiresAt = capsule.expiresAt,
                     distanceMeters = distance.toInt(),
+                    audioType = capsule.audioType,
                 )
             }
             .sortedWith(compareBy<SampleCapsuleSummary> { it.distanceMeters }.thenBy { it.id })

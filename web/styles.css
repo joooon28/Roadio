@@ -125,6 +125,7 @@ button{cursor:pointer}
 .audience-copy{display:flex;flex-direction:column;justify-content:center;gap:0;min-width:0;line-height:1.4}
 .audience-copy strong{font-size:16px;font-weight:600;letter-spacing:-.4px}
 .audience-copy small{color:var(--neutral-600);font-size:14px;font-weight:500;letter-spacing:-.35px;white-space:nowrap}
+.audio-type-option .audience-copy small{white-space:normal}
 .audience-check{display:none;flex:none;width:17px;height:17px;margin-left:auto;margin-right:10px}
 .audience-option.is-selected .audience-check{display:block}
 .audience-period{margin:0;color:var(--neutral-600);font-size:14px;font-weight:500;line-height:1.4;letter-spacing:-.35px;text-align:center}

@@ -46,6 +46,7 @@ private val DiscoveryNeutral50 = Color(0xFFF7F8F9)
 @Composable
 internal fun VehicleStoryDiscoveredScreen(
     title: String,
+    audioTypeLabel: String,
     onListen: () -> Unit,
     onSkip: () -> Unit,
 ) {
@@ -115,6 +116,14 @@ internal fun VehicleStoryDiscoveredScreen(
                         blendMode = BlendMode.Multiply
                     },
                 contentScale = ContentScale.Fit,
+            )
+            Text(
+                text = audioTypeLabel,
+                color = DiscoveryPrimary600,
+                fontSize = (30f * scale).sp,
+                fontWeight = FontWeight.SemiBold,
+                lineHeight = (42f * scale).sp,
+                textAlign = TextAlign.Center,
             )
             Text(
                 text = title,

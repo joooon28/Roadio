@@ -15,6 +15,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
@@ -51,6 +52,7 @@ internal fun VehicleStoryPlayingScreen(
     positionMs: Long,
     durationMs: Long,
     isPaused: Boolean,
+    controlsEnabled: Boolean,
     onTogglePlayback: () -> Unit,
 ) {
     BoxWithConstraints(
@@ -167,7 +169,8 @@ internal fun VehicleStoryPlayingScreen(
             Box(
                 modifier = Modifier
                     .size((120f * scale).dp)
-                    .clickable(onClick = onTogglePlayback),
+                    .alpha(if (controlsEnabled) 1f else .38f)
+                    .clickable(enabled = controlsEnabled, onClick = onTogglePlayback),
                 contentAlignment = Alignment.Center,
             ) {
                 Image(

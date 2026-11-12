@@ -15,7 +15,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -28,8 +30,11 @@ import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlin.math.min
 
 private const val ReferenceWidth = 1697f
@@ -41,6 +46,7 @@ private const val RippleDurationMillis = 4_200
 
 private val Primary50 = Color(0xFFF0F5FE)
 private val Primary100 = Color(0xFFDFE9FC)
+private val Primary600 = Color(0xFF2356C4)
 private val Neutral50 = Color(0xFFF7F8F9)
 
 @Composable
@@ -102,6 +108,19 @@ internal fun VehicleNearbySearchingScreen() {
                     blendMode = BlendMode.Multiply
                 },
             contentScale = ContentScale.Fit,
+        )
+
+        Text(
+            text = "이야기 찾는 중...",
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .offset(y = (-100f * scale).dp),
+            color = Primary600,
+            fontSize = (48f * scale).sp,
+            fontWeight = FontWeight.SemiBold,
+            lineHeight = (67.2f * scale).sp,
+            letterSpacing = (-1.2f * scale).sp,
+            textAlign = TextAlign.Center,
         )
     }
 }

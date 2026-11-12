@@ -195,6 +195,7 @@ internal fun VehicleServerScreen(
         }
         VehicleStoryDiscoveredScreen(
             title = story.title,
+            audioTypeLabel = story.audioType.label,
             onListen = {
                 if (uxRestrictions.restricted == false && story.expiresAt.isAfter(Instant.now())) {
                     skip()
@@ -209,10 +210,12 @@ internal fun VehicleServerScreen(
     }
 
     selected?.takeIf {
-        selectedFromOffer && status in setOf(
-            RoadioPlaybackClient.Status.BUFFERING,
-            RoadioPlaybackClient.Status.PLAYING,
-            RoadioPlaybackClient.Status.PAUSED,
+        selectedFromOffer && (
+            busy || status in setOf(
+                RoadioPlaybackClient.Status.BUFFERING,
+                RoadioPlaybackClient.Status.PLAYING,
+                RoadioPlaybackClient.Status.PAUSED,
+            )
         )
     }?.let { story ->
         var positionMs by remember(story.id) { mutableStateOf(0L) }
@@ -227,6 +230,8 @@ internal fun VehicleServerScreen(
             positionMs = positionMs,
             durationMs = story.durationMs,
             isPaused = status == RoadioPlaybackClient.Status.PAUSED,
+            controlsEnabled = status == RoadioPlaybackClient.Status.PLAYING ||
+                status == RoadioPlaybackClient.Status.PAUSED,
             onTogglePlayback = {
                 if (status == RoadioPlaybackClient.Status.PLAYING) playback.pause()
                 else if (status == RoadioPlaybackClient.Status.PAUSED) playback.resume()
@@ -285,7 +290,7 @@ internal fun VehicleServerScreen(
                 OutlinedCard(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(capsule.title, style = MaterialTheme.typography.titleMedium)
-                        Text("${capsule.authorDisplayName} · ${capsule.distanceMeters}m · ${capsule.durationMs / 1000}초")
+                        Text("${capsule.audioType.label} · ${capsule.authorDisplayName} · ${capsule.distanceMeters}m · ${capsule.durationMs / 1000}초")
                         Text("콘텐츠 출처: ${if (capsule.contentOrigin == "MOBILE_RECORDING") "모바일 녹음" else "사전 준비한 시연용 음성"}")
                         OutlinedButton(onClick = { playback.stop(); selected = capsule; selectedFromOffer = false }) { Text("정보 보기") }
                     }

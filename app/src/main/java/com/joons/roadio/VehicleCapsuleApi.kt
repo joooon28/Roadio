@@ -28,6 +28,7 @@ class VehicleCapsuleApi(private val context: Context) {
                     visibility = SampleVisibility.valueOf(item.getString("visibility")),
                     expiresAt = Instant.parse(item.getString("expiresAt")),
                     distanceMeters = item.getInt("distanceMeters"), contentOrigin = item.getString("contentOrigin"),
+                    audioType = SampleAudioType.valueOf(item.optString("audioType", "VOICE_MESSAGE")),
                 )
             }
         } finally { connection.disconnect() }

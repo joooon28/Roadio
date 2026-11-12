@@ -4,6 +4,7 @@ window.setTimeout(() => { splash.hidden = true; }, 3600);
 const home = document.getElementById('home-screen');
 const preview = document.getElementById('preview-screen');
 const locationScreen = document.getElementById('location-screen');
+const audioTypeScreen = document.getElementById('audio-type-screen');
 const audienceScreen = document.getElementById('audience-screen');
 const reviewScreen = document.getElementById('review-screen');
 const archiveScreen = document.getElementById('archive-screen');
@@ -89,10 +90,13 @@ const locationSearch = document.getElementById('location-search');
 const locationSearchStatus = document.getElementById('location-search-status');
 const locationConfirm = document.getElementById('location-confirm');
 const locationToast = document.getElementById('location-toast');
-const audienceOptions = [...document.querySelectorAll('.audience-option')];
+const audioTypeOptions = [...document.querySelectorAll('.audio-type-option')];
+const audioTypeSubmit = document.getElementById('audio-type-submit');
+const audienceOptions = [...document.querySelectorAll('.audience-option[data-audience]')];
 const audienceSubmit = document.getElementById('audience-submit');
 const audienceLabels = { private: '나에게만 들려주기', neighbors: '내 이웃에게 들려주기', public: '모두에게 들려주기' };
 let selectedAudience = 'private';
+let selectedAudioType = 'message';
 let naverMap = null;
 let radiusCircle = null;
 let locationMode = 'select';
@@ -112,6 +116,7 @@ function show(screen) {
   home.hidden = screen !== home;
   preview.hidden = screen !== preview;
   locationScreen.hidden = screen !== locationScreen;
+  audioTypeScreen.hidden = screen !== audioTypeScreen;
   audienceScreen.hidden = screen !== audienceScreen;
   reviewScreen.hidden = screen !== reviewScreen;
   archiveScreen.hidden = screen !== archiveScreen;
@@ -372,8 +377,33 @@ document.getElementById('location-current').addEventListener('click', () => {
 });
 locationConfirm.addEventListener('click', () => {
   if (!selectedLocation) return;
-  show(audienceScreen);
+  show(audioTypeScreen);
 });
+function selectAudioType(value) {
+  if (!['message', 'local-tip'].includes(value)) return;
+  selectedAudioType = value;
+  audioTypeOptions.forEach(option => {
+    const selected = option.dataset.audioType === value;
+    option.classList.toggle('is-selected', selected);
+    option.setAttribute('aria-checked', String(selected));
+    option.tabIndex = selected ? 0 : -1;
+  });
+}
+audioTypeOptions.forEach((option, index) => {
+  option.addEventListener('click', () => selectAudioType(option.dataset.audioType));
+  option.addEventListener('keydown', event => {
+    if (!['ArrowDown', 'ArrowRight', 'ArrowUp', 'ArrowLeft', 'Home', 'End'].includes(event.key)) return;
+    event.preventDefault();
+    const nextIndex = event.key === 'Home' ? 0 : event.key === 'End' ? audioTypeOptions.length - 1 : (index + (['ArrowDown', 'ArrowRight'].includes(event.key) ? 1 : -1) + audioTypeOptions.length) % audioTypeOptions.length;
+    selectAudioType(audioTypeOptions[nextIndex].dataset.audioType);
+    audioTypeOptions[nextIndex].focus();
+  });
+});
+document.getElementById('audio-type-back').addEventListener('click', () => {
+  show(locationScreen);
+  naverMap?.autoResize();
+});
+audioTypeSubmit.addEventListener('click', () => show(audienceScreen));
 function selectAudience(value) {
   if (!Object.hasOwn(audienceLabels, value)) return;
   selectedAudience = value;
@@ -396,8 +426,7 @@ audienceOptions.forEach((option, index) => {
   });
 });
 document.getElementById('audience-back').addEventListener('click', () => {
-  show(locationScreen);
-  naverMap?.autoResize();
+  show(audioTypeScreen);
 });
 function resolveReviewAddress(location) {
   if (location.address) { reviewAddress.textContent = location.address; return; }
@@ -772,6 +801,7 @@ async function saveReview() {
       title: title.value.trim(), position: { latitude: selectedLocation.latitude, longitude: selectedLocation.longitude },
       visibility: { private: 'SELF', neighbors: 'SELECTED', public: 'PUBLIC' }[selectedAudience],
       selectedRecipientUserIds: recipients, contentOrigin: 'MOBILE_RECORDING',
+      audioType: { message: 'VOICE_MESSAGE', 'local-tip': 'LOCAL_DRIVING_TIP' }[selectedAudioType],
       durationMs: Math.max(1, Math.min(600000, Math.round(lastRecordingDurationMs || audio.duration * 1000 || 1)))
     };
     const fingerprint = JSON.stringify(metadata);
@@ -783,7 +813,7 @@ async function saveReview() {
     body.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
     body.append('audio', new Blob(chunks, { type: recorder?.mimeType || 'audio/mp4' }), 'recording');
     await apiRequest('/v1/capsules', { method: 'POST', body, headers: { 'Idempotency-Key': pendingUploadKey } });
-    clearAudio(); title.value = ''; updateTitleState(); selectedLocation = null; selectAudience('private');
+    clearAudio(); title.value = ''; updateTitleState(); selectedLocation = null; selectAudioType('message'); selectAudience('private');
     if (await openArchiveScreen()) announceArchive('서버에 이야기를 등록했어요.');
   } catch (error) {
     const detail = error instanceof TypeError ? '서버에 연결하지 못했어요.' : (error.message || '등록하지 못했어요.');
@@ -799,12 +829,13 @@ async function saveReviewLocally() {
   const item = {
     id: crypto.randomUUID?.() || `${createdAt}-${Math.random()}`,
     title: title.value.trim(), audience: selectedAudience,
+    audioType: selectedAudioType,
     location: { ...selectedLocation }, createdAt, expiresAt: createdAt + 72 * 60 * 60 * 1000,
     audio: new Blob(chunks, { type: recorder?.mimeType || 'audio/mp4' })
   };
   try {
     await archiveRequest('readwrite', 'put', item);
-    clearAudio(); title.value = ''; updateTitleState(); selectedLocation = null; selectAudience('private');
+    clearAudio(); title.value = ''; updateTitleState(); selectedLocation = null; selectAudioType('message'); selectAudience('private');
     await openArchiveScreen();
     announceArchive('이 기기에만 저장했어요. 다른 기기에는 게시되지 않았습니다.');
   } catch { document.getElementById('review-error').textContent = '이 기기에 저장하지 못했어요. 저장 공간을 확인해 주세요.'; }

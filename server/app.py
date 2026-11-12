@@ -66,6 +66,7 @@ def connect(data_dir):
             title TEXT NOT NULL, description TEXT NOT NULL, latitude REAL NOT NULL,
             longitude REAL NOT NULL, visibility TEXT NOT NULL,
             recipients TEXT NOT NULL, content_origin TEXT NOT NULL,
+            audio_type TEXT NOT NULL DEFAULT 'VOICE_MESSAGE',
             created_at TEXT NOT NULL, expires_at TEXT NOT NULL,
             duration_ms INTEGER NOT NULL, state TEXT NOT NULL,
             audio_mime TEXT NOT NULL, audio_size INTEGER NOT NULL
@@ -76,6 +77,8 @@ def connect(data_dir):
     columns = {row['name'] for row in db.execute('PRAGMA table_info(capsules)')}
     if 'request_key' not in columns:
         db.execute('ALTER TABLE capsules ADD COLUMN request_key TEXT')
+    if 'audio_type' not in columns:
+        db.execute("ALTER TABLE capsules ADD COLUMN audio_type TEXT NOT NULL DEFAULT 'VOICE_MESSAGE'")
     db.execute('CREATE UNIQUE INDEX IF NOT EXISTS capsules_request_key ON capsules(owner_id, request_key)')
     return db
 
@@ -151,7 +154,7 @@ def validate_recipients(db, owner_id, visibility, recipients):
 
 
 def validate_create(db, owner_id, data, demo):
-    if not isinstance(data, dict) or set(data) - {'title', 'description', 'position', 'visibility', 'selectedRecipientUserIds', 'contentOrigin', 'durationMs'}:
+    if not isinstance(data, dict) or set(data) - {'title', 'description', 'position', 'visibility', 'selectedRecipientUserIds', 'contentOrigin', 'durationMs', 'audioType'}:
         raise ValueError('unknown metadata field')
     title = data.get('title')
     if not isinstance(title, str) or not 1 <= len(title.strip()) <= 80:
@@ -171,7 +174,10 @@ def validate_create(db, owner_id, data, demo):
     duration = data.get('durationMs')
     if isinstance(duration, bool) or not isinstance(duration, int) or not 1 <= duration <= 600000:
         raise ValueError('durationMs must be 1–600000')
-    return title.strip(), description, lat, lon, visibility, recipients, origin, duration
+    audio_type = data.get('audioType', 'VOICE_MESSAGE')
+    if audio_type not in ('VOICE_MESSAGE', 'LOCAL_DRIVING_TIP'):
+        raise ValueError('invalid audioType')
+    return title.strip(), description, lat, lon, visibility, recipients, origin, duration, audio_type
 
 
 def state_for(row, now):
@@ -185,7 +191,7 @@ def owner_json(row, now):
                 ownerUserId=row['owner_id'], position=dict(latitude=row['latitude'], longitude=row['longitude']),
                 radiusMeters=RADIUS, visibility=row['visibility'], selectedRecipientUserIds=json.loads(row['recipients']),
                 expiresAt=row['expires_at'], createdAt=row['created_at'], durationMs=row['duration_ms'],
-                contentOrigin=row['content_origin'], state=state_for(row, now))
+                contentOrigin=row['content_origin'], audioType=row['audio_type'], state=state_for(row, now))
 
 
 def accessible(row, user_id, now):
@@ -384,14 +390,14 @@ class Api(SimpleHTTPRequestHandler):
                 created = utcnow()
                 audio_path = self.server.data_dir / 'audio' / capsule_id
                 audio_path.write_bytes(audio)
-                title, description, lat, lon, visibility, recipients, origin, duration = values
+                title, description, lat, lon, visibility, recipients, origin, duration, audio_type = values
                 try:
                     with db:
                         db.execute('''INSERT INTO capsules (id, owner_id, title, description, latitude, longitude,
-                                    visibility, recipients, content_origin, created_at, expires_at, duration_ms,
-                                    state, audio_mime, audio_size, request_key) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
+                                    visibility, recipients, content_origin, audio_type, created_at, expires_at, duration_ms,
+                                    state, audio_mime, audio_size, request_key) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
                                    (capsule_id, user['id'], title, description, lat, lon, visibility,
-                                    json.dumps(recipients), origin, stamp(created), stamp(created + LIFETIME),
+                                    json.dumps(recipients), origin, audio_type, stamp(created), stamp(created + LIFETIME),
                                     duration, 'ACTIVE', mime, len(audio), request_key))
                 except Exception:
                     audio_path.unlink(missing_ok=True)
@@ -419,7 +425,8 @@ class Api(SimpleHTTPRequestHandler):
                     if meters <= RADIUS and accessible(row, user['id'], now):
                         found.append(dict(id=row['id'], title=row['title'], authorDisplayName=row['display_name'],
                                           durationMs=row['duration_ms'], visibility=row['visibility'],
-                                          expiresAt=row['expires_at'], distanceMeters=round(meters), contentOrigin=row['content_origin']))
+                                          expiresAt=row['expires_at'], distanceMeters=round(meters), contentOrigin=row['content_origin'],
+                                          audioType=row['audio_type']))
                 found.sort(key=lambda item: (item['distanceMeters'], item['id']))
                 self.send_json(200, {'capsules': found[:limit]})
             else:

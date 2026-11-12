@@ -54,9 +54,11 @@ class ApiTests(unittest.TestCase):
             finally:
                 error.close()
 
-    def create(self, visibility='PUBLIC', recipients=None, user='owner', key=None, headers=None):
+    def create(self, visibility='PUBLIC', recipients=None, user='owner', key=None, headers=None,
+               audio_type='VOICE_MESSAGE'):
         metadata = {'title': '안녕', 'position': {'latitude': 37.5665, 'longitude': 126.978},
-                    'visibility': visibility, 'contentOrigin': 'MOBILE_RECORDING', 'durationMs': 1200}
+                    'visibility': visibility, 'contentOrigin': 'MOBILE_RECORDING', 'durationMs': 1200,
+                    'audioType': audio_type}
         if recipients is not None:
             metadata['selectedRecipientUserIds'] = recipients
         boundary = 'test-boundary'
@@ -139,14 +141,16 @@ class ApiTests(unittest.TestCase):
             self.db.execute('INSERT INTO recipients VALUES (?,?)', (self.people['owner'][0], neighbor_id))
         status, selected = self.create('SELECTED', [neighbor_id])
         self.assertEqual(status, 201)
-        status, public = self.create()
+        status, public = self.create(audio_type='LOCAL_DRIVING_TIP')
         self.assertEqual(status, 201)
+        self.assertEqual(public['audioType'], 'LOCAL_DRIVING_TIP')
         self.assertEqual(public['radiusMeters'], 100)
         self.assertEqual(parse_stamp(public['expiresAt']) - parse_stamp(public['createdAt']), timedelta(hours=72))
         self.assertEqual(len(self.search('owner')[2]['capsules']), 3)
         self.assertEqual(len(self.search('neighbor')[2]['capsules']), 2)
         stranger_results = self.search('stranger')[2]['capsules']
         self.assertEqual(len(stranger_results), 1)
+        self.assertEqual(stranger_results[0]['audioType'], 'LOCAL_DRIVING_TIP')
         self.assertNotIn('position', stranger_results[0])
         self.assertNotIn('audioUrl', stranger_results[0])
         self.assertEqual(self.search('neighbor', lat=37.568)[2]['capsules'], [])
@@ -183,6 +187,7 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(self.create('SELECTED', [str(uuid4())])[0], 400)
         self.assertEqual(self.create('SELECTED', [])[0], 400)
         self.assertEqual(self.create('PUBLIC', [self.people['neighbor'][0]])[0], 400)
+        self.assertEqual(self.create(audio_type='INVALID')[0], 400)
 
     def test_manual_demo_location_is_explicit_and_still_uses_server_access_rules(self):
         self.assertEqual(self.create('SELF')[0], 201)
