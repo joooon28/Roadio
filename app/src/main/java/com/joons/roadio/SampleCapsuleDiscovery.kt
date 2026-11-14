@@ -11,8 +11,8 @@ import kotlin.math.sqrt
 data class SamplePosition(val latitude: Double, val longitude: Double)
 enum class SampleVisibility { SELF, SELECTED, PUBLIC }
 enum class SampleAudioType(val label: String) {
-    VOICE_MESSAGE("보이스 메시지"),
-    LOCAL_DRIVING_TIP("로컬 주행 팁"),
+    VOICE_MESSAGE("이야기"),
+    LOCAL_DRIVING_TIP("주행 팁"),
 }
 enum class SampleStatus { PUBLISHED, DELETED, REVIEW_PENDING }
 
