@@ -36,10 +36,8 @@ android {
             buildConfigField("String", "FILMING_VEHICLE_TOKEN", "\"$token\"")
         }
         release {
-            optimization {
-                enable = true
-                packageScope = setOf("androidx.**", "kotlin.**", "kotlinx.**")
-            }
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
     compileOptions {
