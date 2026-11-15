@@ -1,80 +1,122 @@
 # Roadio
 
-길 위에 목소리를 남기면, 그곳을 지나는 차 안에서 다시 만나는 위치 기반 음성 커뮤니티.
+혼자 운전하는 순간, 익숙한 사람의 경험과 장소별 주행 팁을 필요한 위치에서 목소리로 발견하는 위치 기반 차량 오디오 서비스입니다.
 
-Roadio는 모바일 웹앱에서 특정 위치에 `이야기` 또는 `주행 팁` 음성을 남기고, 차량이 해당 위치에 진입하면 Pleos Connect 앱에서 발견·청취하는 서비스입니다. 모바일은 녹음·위치·공개 범위 설정을 담당하고 차량 앱은 위치 기반 발견과 안전한 선택 재생에 집중합니다.
+Roadio는 모바일 웹앱에서 특정 위치에 `이야기` 또는 `주행 팁` 음성을 남기고, 차량이 해당 위치에 진입하면 Pleos Connect 앱에서 발견·청취하는 서비스입니다. 모바일은 녹음·위치·오디오 유형·공개 범위 설정을 담당하고, 차량 앱은 위치 기반 자동 발견과 선택 재생에 집중합니다.
 
 ## 공모전 제출 정보
 
 - 제출자: 김준수
 - 앱 이름: Roadio
-- 패키지: `com.joons.roadio`
-- 버전: `1.0` (`versionCode 1`)
-- 제출 APK: [`apk/김준수_Roadio_release.apk`](apk/김준수_Roadio_release.apk)
-- 모바일 웹앱: [Railway 배포 화면](https://roadio-production.up.railway.app/)
+- Android 패키지: `com.joons.roadio`
+- 앱 버전: `1.0` (`versionCode 1`)
+- 제출 APK: [`apk/김준수_Roadio_release.apk`](apk/%EA%B9%80%EC%A4%80%EC%88%98_Roadio_release.apk)
+- 모바일 웹앱: [https://roadio-production.up.railway.app/](https://roadio-production.up.railway.app/)
 - APK SHA-256: `24e95257ef1965be0ac2f06e4e92e2e88c4171634c7a14992017f6624f47967a`
+
+## 주요 기능
+
+### 모바일 작성 웹앱
+
+- 최대 30초 음성 녹음, 미리 듣기, 다시 녹음
+- NAVER Maps를 이용한 등록 위치 선택
+- `이야기`와 `주행 팁` 오디오 유형 설정
+- 제목과 공개 범위 설정
+- 등록한 오디오의 목록·지도 확인 및 관리
+
+### Pleos Connect 차량 앱
+
+- FusedLocation SDK를 이용한 차량 위치 수신
+- 등록 반경 진입 시 서버의 음성 자동 검색
+- 오디오 유형별 발견 알림음과 발견 화면
+- `음성 듣기` 또는 `건너뛰기` 선택
+- 재생·일시정지·다시 듣기·재생 위치 이동
+- CarUxRestrictions 상태에 따른 화면 조작 제한
+
+### Roadio 서버
+
+- Railway HTTPS 배포
+- 음원과 메타데이터 저장
+- 모바일 작성자와 차량 청취 계정 인증
+- 거리·공개 범위·청취 권한·유효기간·삭제 상태 검증
+- 음원 요청 시 접근 권한 재검증
 
 ## 테스트 환경
 
-- 차량 앱: Pleos Connect `Car_on_arm64_emulator`
-- 에뮬레이터 화면: 2560×1440
-- Android 빌드: compile/target SDK 37, min SDK 28
-- 위치: Pleos FusedLocation SDK `1.1.3` 및 에뮬레이터 가상 GPS
-- 서버: Railway HTTPS 배포, SQLite와 음성 파일 영속 볼륨
-- 모바일 확인 환경: iPhone Safari 기반 홈 화면 웹앱
+- Pleos Connect: `v2.1.0`
+- Android: API 34
+- 아키텍처: `arm64-v8a`
+- 화면 규격: `2560×1440`
+- 화면 밀도: `160dpi`
+- 위치 SDK: Pleos FusedLocation `1.1.3`
+- 차량 앱: Kotlin, Jetpack Compose, Android Media3
+- 서버: Railway HTTPS, SQLite, 영속 볼륨
+- 모바일 확인 환경: iPhone Safari 홈 화면 웹앱
 
-## 제출 APK 설치 및 실행
+## 제출 APK 설치
 
-Pleos Connect 에뮬레이터를 실행한 뒤 Android SDK의 ADB로 설치합니다.
+Pleos Connect 에뮬레이터를 실행한 뒤 Android SDK의 ADB로 APK를 설치합니다.
 
 ```sh
-adb install apk/김준수_Roadio_release.apk
+adb install -r apk/김준수_Roadio_release.apk
 ```
 
-동일 패키지의 디버그 APK가 이미 설치돼 있고 서명이 다르면 기존 앱을 제거한 뒤 Release APK를 설치해야 합니다. 제출용 Release APK에는 심사용 차량 연결 코드가 자동 입력되며 화면에서 마스킹됩니다. 이 코드는 심사 종료 후 폐기합니다.
+기존에 다른 서명의 디버그 APK가 설치돼 서명 충돌이 발생하면 기존 `com.joons.roadio` 앱을 제거한 뒤 다시 설치합니다.
 
-시연은 다음 순서로 진행합니다.
+제출용 Release APK에는 심사용 차량 연결 코드가 마스킹된 상태로 자동 입력됩니다. 심사위원은 코드를 직접 입력할 필요가 없습니다. 해당 코드는 심사 종료 후 폐기합니다.
 
-1. 모바일 웹앱에서 이야기 또는 주행 팁을 녹음합니다.
-2. 등록 위치, 제목, 오디오 유형과 공개 범위를 설정해 서버에 등록합니다.
-3. 에뮬레이터 오른쪽의 `…` 메뉴에서 `Location`을 열고, 가상 GPS를 등록 반경 밖에서 안으로 이동합니다. 시연 예시는 반경 밖 `위도 37.5100, 경도 127.0500` → 등록 지점 `위도 37.4979, 경도 127.0276`입니다. 실제 심사에서는 사전 등록한 심사용 음성의 정확한 좌표를 사용합니다.
-4. 차량 앱의 유형별 발견 알림음과 발견 화면을 확인합니다.
-5. 음성을 재생하고 일시정지, 탐색, 다시 듣기를 확인합니다.
+## 심사용 시연 절차
 
-차속 기반 발견 거리 조절, 진행 방향·방향지시등 조건, 차량 경로 공유와 내비게이션 분할 화면은 향후 발전 범위이며 현재 APK의 구현 기능으로 주장하지 않습니다.
+사전에 등록한 심사용 오디오는 `[심사용] 합류시 사각지대 확인`입니다. 등록 반경은 100m입니다.
 
-현재 `main`은 Roadio 작업용입니다. 이전 DriveFit 구현과 검증 문서는 `archive/drivefit` 브랜치에 보존했습니다.
+1. Pleos Connect 에뮬레이터 오른쪽의 `…` 메뉴에서 `Location`을 엽니다.
+2. `Single points`에서 반경 밖 시작 좌표를 선택하고 `SET LOCATION`을 누릅니다.
+   - 위도: `37.5820`
+   - 경도: `126.9950`
+3. Roadio를 실행합니다.
+4. 심사용 연결 코드가 자동 입력된 것을 확인합니다.
+5. 위치 권한을 요청하면 허용하고, `Pleos 위치 확인 완료`를 확인한 뒤 `시연 시작`을 누릅니다.
+6. 에뮬레이터의 `Location`으로 돌아가 이야기 등록 좌표를 선택하고 `SET LOCATION`을 누릅니다.
+   - 위도: `37.5772`
+   - 경도: `126.9889`
+7. 수 초 안에 이야기 발견 알림과 `[심사용] 합류시 사각지대 확인` 화면이 나타납니다.
+8. `이야기 듣기`를 누르고 재생, 일시정지, 재생 위치 이동과 다시 듣기를 확인합니다.
 
-## 기술 검증 전제
+이미 같은 오디오를 듣거나 건너뛴 상태에서 알림이 다시 나타나지 않으면 Roadio를 완전히 종료한 뒤 재실행합니다.
 
-- FusedLocation `1.1.3`은 Pleos AVD에서 빌드·위치 업데이트·반경 진입/이탈을 확인했습니다. 실제 차량과 개발 프로젝트 배포 권한은 미확인입니다. 상세 근거는 `DEV-02-validation.md`를 참고하세요.
-- 차량 상태·주행 중 조작 허용 범위는 확인된 API와 Pleos 정책에 따라 결정합니다.
-- 실제 위치 연동이 불가능한 시연에는 가상 위치와 사전 녹음 샘플을 사용하고 출처를 명시합니다.
-- 사용자 수요와 사업 지표는 아직 검증되지 않았습니다.
+ADB로 위치를 적용할 경우에는 좌표 순서가 `경도 위도`임에 주의합니다.
 
-## 모듈 실행
+```sh
+adb emu geo fix 126.9950 37.5820
+adb emu geo fix 126.9889 37.5772
+```
 
-- 차량 시연 앱: `:app` (`com.joons.roadio`). Pleos Connect AVD에서 검증한다.
-- 모바일 녹음 앱: `:mobile` (`com.joons.roadio.mobile`). 일반 Android 휴대폰 에뮬레이터에서 실행한다. `./gradlew :mobile:assembleDebug --offline --no-daemon --max-workers=2`로 모바일 앱만 빌드할 수 있다.
-- 모바일 앱은 DEV-07 현재 녹음·미리 듣기까지만 동작하며 서버·차량으로 파일을 전송하지 않는다. 상세 결과는 [DEV-07 검증 기록](DEV-07-validation.md)을 참고한다.
+## 프로젝트 구성
 
-## 와이어프레임
+```text
+app/        Pleos Connect 차량 앱
+web/        iPhone 모바일 작성 웹앱
+server/     위치 기반 검색·권한·음원 서버
+docs/       API 계약 및 보조 문서
+apk/        서명된 제출용 Release APK
+```
 
-차량·모바일의 현재 저충실도 화면과 확인 범위는 [와이어프레임 기록](Roadio_WIREFRAME-2026-11-07.md)을 참고하세요. 웹앱의 위치·공개 설정과 로컬 저장 화면은 구현했으며, 서버 게시 연결은 아직 구현 전입니다.
+`mobile/`은 초기 Android 모바일 탐색 모듈이며, 최종 시연의 모바일 작성 화면은 `web/`의 PWA입니다.
 
-## iPhone 웹앱과 네이버 지도
+## 로컬 빌드
 
-`web/`은 iPhone 13 mini 시연용 모바일 웹앱입니다. `python3 -m http.server 8765 --directory web`으로 로컬에서 열 수 있습니다. 마이크와 현재 위치는 HTTPS 환경 또는 `localhost`에서 사용해야 합니다.
+### 차량 앱
 
-03a 위치 선택 화면은 NAVER Maps JavaScript API를 사용합니다. NAVER Cloud의 새 **Maps** 서비스에서 애플리케이션을 만들고 **Dynamic Map**과 **Geocoding**을 사용할 수 있도록 설정한 뒤, 웹 서비스 URL에 실행 주소를 등록하세요. 로컬 테스트에는 localhost 주소, iPhone 시연에는 배포한 HTTPS 주소가 각각 필요합니다. 등록 URL의 포트 포함 여부 등은 콘솔 안내에 맞춰 확인하세요. 발급한 **Client ID**를 `web/config.js`의 `naverMapClientId`에 입력하세요. Client Secret은 브라우저 파일에 넣지 않습니다. 옛 AI NAVER API 지도 상품에는 2025년 7월부터 무료 이용량이 제공되지 않으므로 새 Maps 서비스를 선택해야 합니다.
+```sh
+./gradlew :app:assembleDebug
+./gradlew :app:assembleRelease
+```
 
-현재 로컬 설정에는 Client ID가 입력되어 있고, localhost의 Chrome에서 지도 SDK와 Geocoding 모듈 로드 및 지도 초기화를 확인했습니다. 검색은 NAVER Geocoding의 **주소 결과**를 사용하며, 장소명·상호명 검색은 별도의 장소 검색 서비스와 서버 연동이 필요합니다. 지도 타일의 실제 표시, 검색 결과 및 iPhone Safari 동작은 아직 검증 전입니다.
+Android Studio에서 실행할 때는 차량 모듈인 `app`을 선택합니다. `mobile`을 선택하면 최종 차량 화면이 아닌 초기 모바일 탐색 화면이 실행됩니다.
 
-홈 화면 추가용 manifest를 등록했습니다. iPhone 13 mini의 Safari 녹음·GPS·지도·홈 화면 실행은 HTTPS 배포 뒤 [DEV-08 검증 기록](DEV-08-validation.md)의 순서대로 직접 확인해야 합니다. 등록 버튼은 DEV-10 로컬 서버 주소에서 열면 서버에 게시하고, 별도 정적 서버에서 열면 IndexedDB에 **이 기기만 저장**합니다.
+촬영·제출용 토큰은 Git에서 제외된 `local.properties`의 `roadio.filming.vehicleToken` 값으로 빌드 시 주입합니다. 토큰 원문은 코드와 문서에 기록하지 않습니다.
 
-## DEV-09 로컬 서버
-
-Python 3 표준 라이브러리로 만든 API가 `server/app.py`에 있습니다. 저장소는 SQLite와 로컬 음성 파일이며 `server/data/`는 Git에서 제외됩니다.
+### 로컬 서버
 
 ```sh
 python3 server/app.py --data-dir server/data create-user '작성자'
@@ -82,52 +124,21 @@ python3 server/app.py --data-dir server/data serve
 PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s server -p 'test_*.py' -v
 ```
 
-첫 명령은 사용자 ID와 임의 Bearer 토큰을 한 번 표시합니다. 토큰은 코드나 저장소에 넣지 마세요. 서버는 기본값 `127.0.0.1:8787`에서만 실행됩니다. API 요청/응답 형식은 [OpenAPI 계약](docs/contracts/roadio-api-v1.yaml), 검증 범위는 [DEV-09 기록](DEV-09-validation.md)을 참고하세요.
+서버는 기본적으로 `127.0.0.1:8787`에서 실행됩니다. API 요청·응답 형식은 [`docs/contracts/roadio-api-v1.yaml`](docs/contracts/roadio-api-v1.yaml)에 정의했습니다.
 
-## DEV-10 모바일 웹앱 서버 연결
+## 구현 범위와 한계
 
-위 명령으로 서버를 켠 다음 `http://127.0.0.1:8787/`을 여세요. 이 주소는 웹 화면과 API를 함께 제공합니다. 등록 또는 내 캡슐 화면을 처음 열면 `create-user`에서 발급한 Bearer 토큰을 입력합니다. 등록, 내 목록 조회·재생, 공개 범위 변경, 삭제가 로컬 서버에 반영됩니다. 실패한 등록은 같은 화면에서 다시 누르면 재시도합니다. `http://localhost:8765/` 등 별도 정적 서버로 연 화면은 기존 기기 내 저장 모드이므로 서버 데이터와 자동 동기화되지 않습니다.
+- 모바일 녹음 → Railway 저장 → Pleos AVD 가상 GPS 이동 → 차량 발견 → 선택 재생의 전체 흐름을 검증했습니다.
+- FusedLocation `1.1.3`의 위치 업데이트를 Pleos Connect AVD에서 확인했습니다.
+- 가상 GPS 시연은 실차 GPS 주행 검증과 구분합니다.
+- 차속 기반 발견 거리 조정, 진행 방향·방향지시등 조건, 차량 경로 공유, 내비게이션 분할 화면은 향후 발전 범위입니다.
+- Roadio는 안전을 보장하거나 운전 판단을 대신하는 시스템이 아닙니다. 실제 도로 표지, 공식 안내와 운전자의 직접 확인을 우선합니다.
 
-`내 이웃` 시연에는 별도 테스트 계정을 만들고, 당사자가 동의한 계정 ID만 작성자의 테스트 명단에 추가하세요.
+## 개발·검증 문서
 
-```sh
-python3 server/app.py --data-dir server/data create-user '이웃'
-python3 server/app.py --data-dir server/data add-recipient 작성자ID 이웃ID
-```
+- [`Roadio_DESIGN-시안-2026-11-07.md`](Roadio_DESIGN-%EC%8B%9C%EC%95%88-2026-11-07.md)
+- [`Roadio_WIREFRAME-2026-11-07.md`](Roadio_WIREFRAME-2026-11-07.md)
+- [`Roadio_기획서_기능정의서_UX기준안.md`](Roadio_%EA%B8%B0%ED%9A%8D%EC%84%9C_%EA%B8%B0%EB%8A%A5%EC%A0%95%EC%9D%98%EC%84%9C_UX%EA%B8%B0%EC%A4%80%EC%95%88.md)
+- `DEV-01-validation.md` ~ `DEV-11-validation.md`, `DEV-13-validation.md`, `DEV-14-validation.md`
 
-이 명단은 실제 초대·친구 기능이 아닙니다. iPhone에서의 접속과 실서비스 공유에는 HTTPS 배포, 계정 인증, 초대·동의 흐름이 필요합니다. 차량 앱의 서버 연결은 DEV-11 범위입니다. 구현·검증 근거는 [DEV-10 기록](DEV-10-validation.md)을 참고하세요.
-
-## DEV-11 차량 앱 서버 연결
-
-차량 앱 기본 화면에서 별도 차량 시연 계정 토큰을 입력하고 Pleos 위치 확인 또는 명시된 가상 좌표를 적용한 뒤 **주변 이야기 검색**을 누르세요. 로컬 서버로 시험하려면 서버 주소를 `http://10.0.2.2:8787`로 바꾸세요. 같은 `server/data`를 사용하는 위 로컬 서버가 켜져 있어야 합니다. 목록에서 이야기를 선택한 뒤 재생을 누를 때 서버가 권한·만료를 다시 확인합니다. 자동 재생은 없습니다. 원격 서버는 HTTPS 주소만 받습니다.
-
-실행 중인 에뮬레이터가 없어 이번 단계의 실제 화면·음성 출력은 아직 확인 전입니다. 단계별 근거와 한계는 [DEV-11 기록](DEV-11-validation.md)에 있습니다.
-
-## Railway HTTPS 시연 서버
-
-저장소 루트의 `Dockerfile`은 Android Gradle 프로젝트 대신 `server/`와 `web/`만 Python 이미지로 배포한다. Railway 서비스에는 `/data` 영속 볼륨을 연결한다. 컨테이너는 Railway가 제공하는 `$PORT`와 `0.0.0.0`에서 서버를 열고, SQLite와 음성 파일은 Railway의 `RAILWAY_VOLUME_MOUNT_PATH` 또는 기본 `/data`에 저장한다. 공개 도메인은 Railway의 Public Networking에서 생성하며 별도 도메인은 필요하지 않다.
-
-Railway `Variables`에는 서로 다른 32자 이상의 URL-safe 토큰을 비밀값으로 등록한다. 값은 Git·문서·스크린샷에 넣지 않는다.
-
-```text
-ROADIO_BOOTSTRAP_OWNER_TOKEN=<작성자용 비밀 토큰>
-ROADIO_BOOTSTRAP_VEHICLE_TOKEN=<차량 청취자용 비밀 토큰>
-```
-
-선택적으로 `ROADIO_BOOTSTRAP_OWNER_NAME`, `ROADIO_BOOTSTRAP_VEHICLE_NAME`을 지정할 수 있다. 서버는 시작할 때 안정적인 시연 사용자 ID 두 개와 작성자→차량 수신자 관계를 중복 없이 준비하고 토큰 원문은 저장하지 않는다. 토큰을 변경하면 다음 시작부터 저장된 해시가 바뀐다. `/v1/health`를 Railway Healthcheck Path로 설정하고, 배포 뒤 HTTPS 주소에서 상태 응답을 확인한다.
-
-이 구성은 공모전 시연용이다. 실제 로그인·초대 동의·비밀값 회전 UI·관리자 복구 기능을 대신하지 않는다. 장기 운영에서는 SQLite와 로컬 볼륨 대신 관리형 DB와 오브젝트 스토리지 분리를 검토한다.
-
-## 로컬 촬영용 차량 앱 자동 연결
-
-Android Studio에서 저장소 루트의 `local.properties`를 열고, 기존 설정 아래에 이미 쓰는 차량 시연 계정 토큰을 한 번 입력한다.
-
-```properties
-roadio.filming.vehicleToken=여기에_기존_차량_시연_계정_토큰
-```
-
-Pleos 에뮬레이터를 선택하고 Android Studio에서 차량 `app`을 Run한다. 이 설정이 있는 디버그 빌드는 기존 Railway 서버와 차량 계정을 사용해 시작한다. 화면 조작이 가능한 상태에서 Pleos 위치 확인이 시작되며, 필요할 때 시스템 위치 권한을 허용한다. 촬영 화면은 서버 주소·토큰 입력을 숨긴다. 앱의 가상 위치 입력칸에 녹음 반경 밖 좌표를 넣고 `가상 위치 적용`을 누른 다음, 반경 안 좌표로 같은 동작을 반복한다. 새 위치에서 자동으로 주변 이야기를 확인한다. 화면에 `직접 입력한 가상 위치 · 시연 전용`으로 표시된다.
-
-Pleos SDK 경로를 별도로 검증할 때는 `Pleos 위치 확인`으로 전환하고 `adb emu geo fix <경도> <위도>`로 AVD GPS를 옮긴다. Android Studio Run 뒤에도 예전 화면이 보인다면 최신 테스트용 APK가 설치됐는지 확인한다. 이 프로젝트의 Android Studio 빌드는 `app/build/intermediates/apk/debug/app-debug.apk`를 생성했고, Pleos AVD에 `adb install -r -t app/build/intermediates/apk/debug/app-debug.apk`로 설치했다.
-
-`local.properties`는 Git에서 제외된다. 제출용 Release APK는 로컬 설정의 심사용 토큰을 빌드 시 주입한다. 해당 APK는 심사에만 사용하고 심사 종료 후 서버의 코드를 폐기한다.
+개별 검증 문서에는 SDK·서버·모바일·차량 기능의 단계별 근거와 검증 한계를 기록했습니다.
