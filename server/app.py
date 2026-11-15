@@ -23,6 +23,8 @@ RADIUS = 100
 LOCAL_TIP_RADIUS_LOW = 30
 LOCAL_TIP_RADIUS_HIGH = 250
 LIFETIME = timedelta(hours=72)
+SUBMISSION_DEMO_TITLE_PREFIX = '[심사용]'
+SUBMISSION_DEMO_LIFETIME = timedelta(days=30)
 TOKEN_PATTERN = re.compile(r'[A-Za-z0-9_-]{32,128}')
 WEB_SESSION_COOKIE = 'roadio_web_session'
 WEB_SESSION_LIFETIME = timedelta(days=180)
@@ -39,6 +41,10 @@ def stamp(value):
 
 def parse_stamp(value):
     return datetime.fromisoformat(value.replace('Z', '+00:00'))
+
+
+def capsule_lifetime(title):
+    return SUBMISSION_DEMO_LIFETIME if title.startswith(SUBMISSION_DEMO_TITLE_PREFIX) else LIFETIME
 
 
 def connect(data_dir):
@@ -399,7 +405,7 @@ class Api(SimpleHTTPRequestHandler):
                                     visibility, recipients, content_origin, audio_type, created_at, expires_at, duration_ms,
                                     state, audio_mime, audio_size, request_key) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
                                    (capsule_id, user['id'], title, description, lat, lon, visibility,
-                                    json.dumps(recipients), origin, audio_type, stamp(created), stamp(created + LIFETIME),
+                                    json.dumps(recipients), origin, audio_type, stamp(created), stamp(created + capsule_lifetime(title)),
                                     duration, 'ACTIVE', mime, len(audio), request_key))
                 except Exception:
                     audio_path.unlink(missing_ok=True)

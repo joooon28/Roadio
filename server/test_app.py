@@ -55,8 +55,8 @@ class ApiTests(unittest.TestCase):
                 error.close()
 
     def create(self, visibility='PUBLIC', recipients=None, user='owner', key=None, headers=None,
-               audio_type='VOICE_MESSAGE'):
-        metadata = {'title': '안녕', 'position': {'latitude': 37.5665, 'longitude': 126.978},
+               audio_type='VOICE_MESSAGE', title='안녕'):
+        metadata = {'title': title, 'position': {'latitude': 37.5665, 'longitude': 126.978},
                     'visibility': visibility, 'contentOrigin': 'MOBILE_RECORDING', 'durationMs': 1200,
                     'audioType': audio_type}
         if recipients is not None:
@@ -149,29 +149,33 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(public['audioType'], 'LOCAL_DRIVING_TIP')
         self.assertEqual(public['radiusMeters'], 100)
         self.assertEqual(parse_stamp(public['expiresAt']) - parse_stamp(public['createdAt']), timedelta(hours=72))
-        self.assertEqual(len(self.search('owner')[2]['capsules']), 3)
-        self.assertEqual(len(self.search('neighbor')[2]['capsules']), 2)
+        status, submission_demo = self.create(title='[심사용] 우리의 첫 바다 여행길')
+        self.assertEqual(status, 201)
+        self.assertEqual(parse_stamp(submission_demo['expiresAt']) - parse_stamp(submission_demo['createdAt']), timedelta(days=30))
+        self.assertEqual(len(self.search('owner')[2]['capsules']), 4)
+        self.assertEqual(len(self.search('neighbor')[2]['capsules']), 3)
         stranger_results = self.search('stranger')[2]['capsules']
-        self.assertEqual(len(stranger_results), 1)
-        self.assertEqual(stranger_results[0]['audioType'], 'LOCAL_DRIVING_TIP')
-        self.assertNotIn('position', stranger_results[0])
-        self.assertNotIn('audioUrl', stranger_results[0])
+        self.assertEqual(len(stranger_results), 2)
+        driving_tip = next(item for item in stranger_results if item['audioType'] == 'LOCAL_DRIVING_TIP')
+        self.assertNotIn('position', driving_tip)
+        self.assertNotIn('audioUrl', driving_tip)
         self.assertEqual(self.search('neighbor', lat=37.568)[2]['capsules'], [])
         fast_results = self.search('stranger', lat=37.568, speed=80)[2]['capsules']
         self.assertEqual(len(fast_results), 1)
-        self.assertEqual(fast_results[0]['discoveryRadiusMeters'], 250)
+        fast_driving_tip = next(item for item in fast_results if item['audioType'] == 'LOCAL_DRIVING_TIP')
+        self.assertEqual(fast_driving_tip['discoveryRadiusMeters'], 250)
         self.assertEqual(self.request('GET', f"/v1/capsules/{selected['id']}/audio", 'stranger')[0], 404)
         status, headers, audio = self.request('GET', f"/v1/capsules/{public['id']}/audio", 'stranger', headers={'Range': 'bytes=0-3'})
         self.assertEqual((status, audio, headers['Content-Range']), (206, b'RIFF', 'bytes 0-3/36'))
         with self.db:
             self.db.execute('UPDATE capsules SET expires_at=? WHERE id=?', (stamp(utcnow() - timedelta(seconds=1)), selected['id']))
-        self.assertEqual(len(self.search('neighbor')[2]['capsules']), 1)
+        self.assertEqual(len(self.search('neighbor')[2]['capsules']), 2)
         self.assertEqual(self.request('GET', f"/v1/capsules/{selected['id']}/audio", 'neighbor')[0], 404)
         self.assertEqual(self.request('DELETE', f"/v1/capsules/{public['id']}", 'stranger')[0], 404)
         self.assertEqual(self.request('DELETE', f"/v1/capsules/{public['id']}", 'owner')[0], 204)
-        self.assertEqual(self.search()[2]['capsules'], [])
+        self.assertEqual(len(self.search()[2]['capsules']), 1)
         self.assertEqual(self.request('GET', f"/v1/capsules/{public['id']}/audio", 'owner')[0], 404)
-        self.assertEqual(len(json.loads(self.request('GET', '/v1/capsules')[2])), 3)
+        self.assertEqual(len(json.loads(self.request('GET', '/v1/capsules')[2])), 4)
 
     def test_update_audience_and_retry(self):
         health = self.request('GET', '/v1/health', user=None)
