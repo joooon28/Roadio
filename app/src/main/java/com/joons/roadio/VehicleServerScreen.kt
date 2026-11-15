@@ -193,6 +193,22 @@ internal fun VehicleServerScreen(
         return
     }
 
+    if (!setupComplete) {
+        VehicleReviewerSetupScreen(
+            token = token,
+            onTokenChange = { token = it },
+            locationLabel = location.sourceLabel,
+            locationMessage = location.message,
+            locationReady = location.position != null,
+            onCheckLocation = { location.requestLocation() },
+            onStart = {
+                setupComplete = true
+                error = null
+            },
+        )
+        return
+    }
+
     val status = playback.status
     val canOffer = !busy && status !in setOf(RoadioPlaybackClient.Status.CONNECTING,
         RoadioPlaybackClient.Status.PLAYING, RoadioPlaybackClient.Status.PAUSED, RoadioPlaybackClient.Status.BUFFERING)
