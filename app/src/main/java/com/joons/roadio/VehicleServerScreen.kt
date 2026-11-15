@@ -1,6 +1,7 @@
 package com.joons.roadio
 
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -50,6 +51,7 @@ internal fun VehicleServerScreen(
     val filmingBuild = filmingToken.isNotEmpty()
     var serverUrl by remember { mutableStateOf("https://roadio-production.up.railway.app") }
     var token by remember { mutableStateOf(filmingToken) }
+    var setupComplete by remember { mutableStateOf(filmingBuild) }
     var requestedInitialLocation by remember { mutableStateOf(false) }
     var latitude by remember { mutableStateOf(if (filmingBuild) "" else "37.4979") }
     var longitude by remember { mutableStateOf(if (filmingBuild) "" else "127.0276") }
@@ -66,7 +68,11 @@ internal fun VehicleServerScreen(
     var screenActive by remember { mutableStateOf(true) }
     val source = location.source
     val sdkLocation = source == "PLEOS_EMULATOR" || source == "PLEOS_DEVICE"
-    val autoDiscovery = sdkLocation || (filmingBuild && source == "DEMO_MANUAL")
+    val autoDiscovery = setupComplete && (sdkLocation || source == "DEMO_MANUAL")
+
+    BackHandler(enabled = setupComplete && selected == null) {
+        setupComplete = false
+    }
 
     DisposableEffect(Unit) {
         onDispose { screenActive = false }
@@ -257,7 +263,7 @@ internal fun VehicleServerScreen(
         return
     }
 
-    if (filmingBuild && selected == null) {
+    if (setupComplete && selected == null) {
         VehicleNearbySearchingScreen()
         return
     }
@@ -298,6 +304,18 @@ internal fun VehicleServerScreen(
                 }
                 OutlinedButton(onClick = { location.setDemoPosition(latitude, longitude) }) { Text("가상 위치 적용") }
             }
+        }
+        if (!filmingBuild) {
+            Button(
+                onClick = {
+                    setupComplete = true
+                    error = null
+                },
+                enabled = token.isNotBlank() && location.position != null,
+            ) {
+                Text("시연 시작")
+            }
+            Text("연결 코드와 위치를 확인한 뒤 시작하면 설정 화면이 숨겨집니다. 뒤로 가기를 누르면 다시 설정할 수 있습니다.")
         }
         Button(onClick = { search() }, enabled = !busy && location.position != null && token.isNotBlank()) { Text(if (busy) "확인 중" else "주변 이야기 검색") }
         error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
