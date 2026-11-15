@@ -85,7 +85,7 @@ internal fun VehicleServerScreen(
         }
     }
 
-    LaunchedEffect(offers, source) {
+    LaunchedEffect(offers, source, autoDiscovery) {
         if (!autoDiscovery || token.isBlank()) return@LaunchedEffect
         val url = serverUrl
         val account = token

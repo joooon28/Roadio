@@ -12,7 +12,7 @@ Roadio는 모바일 웹앱에서 특정 위치에 `이야기` 또는 `주행 팁
 - 버전: `1.0` (`versionCode 1`)
 - 제출 APK: [`apk/김준수_Roadio_release.apk`](apk/김준수_Roadio_release.apk)
 - 모바일 웹앱: [Railway 배포 화면](https://roadio-production.up.railway.app/)
-- APK SHA-256: `bfe109cfa17f99d56dcdddd44c79b8ba15f7408e2f4ea5616014895f2d55426f`
+- APK SHA-256: `24e95257ef1965be0ac2f06e4e92e2e88c4171634c7a14992017f6624f47967a`
 
 ## 테스트 환경
 
