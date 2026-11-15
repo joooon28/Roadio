@@ -36,6 +36,11 @@ android {
             buildConfigField("String", "FILMING_VEHICLE_TOKEN", "\"$token\"")
         }
         release {
+            val token = filmingToken.get()
+            require(token.isEmpty() || Regex("[A-Za-z0-9_-]{32,128}").matches(token)) {
+                "roadio.filming.vehicleToken must contain 32–128 URL-safe characters"
+            }
+            buildConfigField("String", "FILMING_VEHICLE_TOKEN", "\"$token\"")
             isMinifyEnabled = false
             isShrinkResources = false
         }

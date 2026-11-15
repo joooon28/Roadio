@@ -138,7 +138,16 @@ internal fun VehicleReviewerSetupScreen(
                     onValueChange = onTokenChange,
                     modifier = Modifier.fillMaxWidth(),
                     label = { Text("차량 연결 코드") },
-                    placeholder = { Text("심사용 차량 연결 코드를 입력해 주세요") },
+                    placeholder = { Text("심사용 차량 연결 코드") },
+                    supportingText = {
+                        Text(
+                            text = if (token.isNotBlank()) {
+                                "심사용 연결 코드가 자동으로 입력되었습니다."
+                            } else {
+                                "연결 코드가 없습니다."
+                            },
+                        )
+                    },
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
                     shape = RoundedCornerShape((16f * scale).dp),
@@ -215,7 +224,7 @@ internal fun VehicleReviewerSetupScreen(
             }
 
             Text(
-                text = "연결 정보는 앱을 종료하면 삭제됩니다.",
+                text = "심사용 연결 코드는 심사 종료 후 폐기됩니다.",
                 color = SetupNeutral600,
                 fontSize = (18f * scale).sp,
                 textAlign = TextAlign.Center,

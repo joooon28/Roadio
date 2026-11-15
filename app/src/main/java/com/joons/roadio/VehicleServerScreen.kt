@@ -51,7 +51,7 @@ internal fun VehicleServerScreen(
     val filmingBuild = filmingToken.isNotEmpty()
     var serverUrl by remember { mutableStateOf("https://roadio-production.up.railway.app") }
     var token by remember { mutableStateOf(filmingToken) }
-    var setupComplete by remember { mutableStateOf(filmingBuild) }
+    var setupComplete by remember { mutableStateOf(false) }
     var requestedInitialLocation by remember { mutableStateOf(false) }
     var latitude by remember { mutableStateOf(if (filmingBuild) "" else "37.4979") }
     var longitude by remember { mutableStateOf(if (filmingBuild) "" else "127.0276") }
