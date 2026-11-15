@@ -31,13 +31,13 @@ Pleos Connect 에뮬레이터를 실행한 뒤 Android SDK의 ADB로 설치합�
 adb install apk/김준수_Roadio_release.apk
 ```
 
-동일 패키지의 디버그 APK가 이미 설치돼 있고 서명이 다르면 기존 앱을 제거한 뒤 Release APK를 설치해야 합니다. 최초 실행 시 위치 권한을 허용하고, 주최 측에 별도로 제공하는 시연 계정 연결 정보를 입력합니다. 저장소와 APK에는 운영 토큰을 포함하지 않습니다.
+동일 패키지의 디버그 APK가 이미 설치돼 있고 서명이 다르면 기존 앱을 제거한 뒤 Release APK를 설치해야 합니다. 제출용 Release APK에는 심사용 차량 연결 코드가 자동 입력되며 화면에서 마스킹됩니다. 이 코드는 심사 종료 후 폐기합니다.
 
 시연은 다음 순서로 진행합니다.
 
 1. 모바일 웹앱에서 이야기 또는 주행 팁을 녹음합니다.
 2. 등록 위치, 제목, 오디오 유형과 공개 범위를 설정해 서버에 등록합니다.
-3. Pleos 에뮬레이터의 가상 GPS를 등록 반경 밖에서 안으로 이동합니다.
+3. 에뮬레이터 오른쪽의 `…` 메뉴에서 `Location`을 열고, 가상 GPS를 등록 반경 밖에서 안으로 이동합니다. 시연 예시는 반경 밖 `위도 37.5100, 경도 127.0500` → 등록 지점 `위도 37.4979, 경도 127.0276`입니다. 실제 심사에서는 사전 등록한 심사용 음성의 정확한 좌표를 사용합니다.
 4. 차량 앱의 유형별 발견 알림음과 발견 화면을 확인합니다.
 5. 음성을 재생하고 일시정지, 탐색, 다시 듣기를 확인합니다.
 
@@ -130,4 +130,4 @@ Pleos 에뮬레이터를 선택하고 Android Studio에서 차량 `app`을 Run�
 
 Pleos SDK 경로를 별도로 검증할 때는 `Pleos 위치 확인`으로 전환하고 `adb emu geo fix <경도> <위도>`로 AVD GPS를 옮긴다. Android Studio Run 뒤에도 예전 화면이 보인다면 최신 테스트용 APK가 설치됐는지 확인한다. 이 프로젝트의 Android Studio 빌드는 `app/build/intermediates/apk/debug/app-debug.apk`를 생성했고, Pleos AVD에 `adb install -r -t app/build/intermediates/apk/debug/app-debug.apk`로 설치했다.
 
-`local.properties`는 Git에서 제외된다. 토큰이 포함된 디버그 APK는 로컬 촬영에만 사용한다. 릴리스 빌드의 촬영 토큰은 비어 있다.
+`local.properties`는 Git에서 제외된다. 제출용 Release APK는 로컬 설정의 심사용 토큰을 빌드 시 주입한다. 해당 APK는 심사에만 사용하고 심사 종료 후 서버의 코드를 폐기한다.
